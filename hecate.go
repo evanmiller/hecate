@@ -12,7 +12,7 @@ type CursorMode int
 
 const (
 	StringMode CursorMode = iota
-	BitMode
+	BitPatternMode
 	IntegerMode
 	FloatingPointMode
 )
@@ -149,7 +149,7 @@ func cursorColor(cursor Cursor, style Style) termbox.Attribute {
 	if cursor.mode == FloatingPointMode {
 		return style.fp_cursor_hex_bg
 	}
-	if cursor.mode == BitMode {
+	if cursor.mode == BitPatternMode {
 		return style.bit_cursor_hex_bg
 	}
 	return style.text_cursor_hex_bg
@@ -214,6 +214,78 @@ func formatBytesAsNumber(data []byte, cursor Cursor) string {
 		}
 	}
 	return str
+}
+
+func drawStringAtPoint(str string, x int, y int, fg termbox.Attribute, bg termbox.Attribute) int {
+	x_pos := x
+	for _, runeValue := range str {
+		termbox.SetCell(x_pos, y, runeValue, fg, bg)
+		x_pos++
+	}
+	return x_pos - x
+}
+
+func drawCommands(cursor Cursor, style Style) {
+	fg := style.default_fg
+	bg := style.default_bg
+	_, height := termbox.Size()
+	x, y := 6, height-2
+	str1 := "Navigate: ←h ↓j ↑k →l"
+	str2 := "          ←←←←b w→→→→"
+	x += drawStringAtPoint(str1, x, y, fg, bg)
+	x = 6
+	y++
+	x += drawStringAtPoint(str2, x, y, fg, bg)
+	x += 4
+	y = height - 2
+
+	x_pos := x
+	x_pos += drawStringAtPoint("Cursor: ", x_pos, y, fg, bg)
+	if cursor.mode == StringMode {
+		x_pos += drawStringAtPoint("(t)ext", x_pos, y, fg, cursorColor(cursor, style))
+	} else {
+		x_pos += drawStringAtPoint("(t)ext", x_pos, y, fg, bg)
+	}
+	x_pos += drawStringAtPoint(" ", x_pos, y, fg, bg)
+	if cursor.mode == BitPatternMode {
+		x_pos += drawStringAtPoint("(p)attern", x_pos, y, fg, cursorColor(cursor, style))
+	} else {
+		x_pos += drawStringAtPoint("(p)attern", x_pos, y, fg, bg)
+	}
+	x_pos += drawStringAtPoint(" ", x_pos, y, fg, bg)
+	if cursor.mode == IntegerMode {
+		x_pos += drawStringAtPoint("(i)nteger", x_pos, y, fg, cursorColor(cursor, style))
+	} else {
+		x_pos += drawStringAtPoint("(i)nteger", x_pos, y, fg, bg)
+	}
+	x_pos += drawStringAtPoint(" ", x_pos, y, fg, bg)
+	if cursor.mode == FloatingPointMode {
+		x_pos += drawStringAtPoint("(f)loat", x_pos, y, fg, cursorColor(cursor, style))
+	} else {
+		x_pos += drawStringAtPoint("(f)loat", x_pos, y, fg, bg)
+	}
+	str2 = ""
+	if cursor.mode == IntegerMode || cursor.mode == FloatingPointMode {
+		if cursor.big_endian {
+			str2 += " (E)ndian"
+		} else {
+			str2 += " (e)ndian"
+		}
+	}
+	if cursor.mode == IntegerMode {
+		if cursor.unsigned {
+			str2 += " (U)nsigned"
+		} else {
+			str2 += " (u)nsigned"
+		}
+	}
+	if len(str2) > 0 {
+		str2 = "Toggle:" + str2
+		drawStringAtPoint(str2, x, y+1, fg, bg)
+	}
+	if cursor.mode == IntegerMode || cursor.mode == FloatingPointMode {
+		drawStringAtPoint("Size: -H +L", x_pos-11, y+1, fg, bg)
+	}
 }
 
 func drawBytes(data []byte, old_view_port ViewPort, style Style, cursor Cursor, hilite ByteRange) ViewPort {
@@ -281,7 +353,7 @@ func drawBytes(data []byte, old_view_port ViewPort, style Style, cursor Cursor, 
 			} else {
 				termbox.SetCell(x, y+1, ' ', 0, rune_bg)
 			}
-		} else if cursor.mode == BitMode {
+		} else if cursor.mode == BitPatternMode {
 			for i := 0; i < 8; i++ {
 				if b&(1<<uint8(7-i)) > 0 {
 					termbox.SetCell(x-1+(i%4), y+1+i/4, '●', style.bit_fg, rune_bg)
@@ -303,15 +375,16 @@ func drawBytes(data []byte, old_view_port ViewPort, style Style, cursor Cursor, 
 					x_copy = 2
 					y_copy += 3
 				}
+				if y_copy > height-2 {
+					break
+				}
 			}
 		}
 		str := fmt.Sprintf("%02x", b)
-		for _, runeValue := range str {
-			termbox.SetCell(x, y, runeValue, hex_fg, hex_bg)
-			x++
-		}
+		x += drawStringAtPoint(str, x, y, hex_fg, hex_bg)
 		x++
 	}
+	drawCommands(cursor, style)
 	termbox.Flush()
 
 	return new_view_port
@@ -335,10 +408,7 @@ func drawColorScreen(fg termbox.Attribute, bg termbox.Attribute) {
 		x += 2
 
 		str := fmt.Sprintf("%3d", color)
-		for _, runeValue := range str {
-			termbox.SetCell(x, y, runeValue, fg, bg)
-			x++
-		}
+		x += drawStringAtPoint(str, x, y, fg, bg)
 		x += 2
 	}
 	termbox.Flush()
@@ -426,12 +496,12 @@ func mainLoop(bytes []byte, style Style) {
 					cursor.mode = FloatingPointMode
 				}
 			} else if event.Ch == 'p' {
-				if cursor.mode == BitMode {
+				if cursor.mode == BitPatternMode {
 					cursor.mode = prev_mode
-					prev_mode = BitMode
+					prev_mode = BitPatternMode
 				} else {
 					prev_mode = cursor.mode
-					cursor.mode = BitMode
+					cursor.mode = BitPatternMode
 				}
 			} else if event.Ch == 't' {
 				if cursor.mode == StringMode {
@@ -448,12 +518,22 @@ func mainLoop(bytes []byte, style Style) {
 				if cursor.mode == FloatingPointMode && cursor.fp_length > MIN_FLOATING_POINT_WIDTH {
 					cursor.fp_length /= 2
 				}
-			} else if event.Ch == 'L' { /* lengthen */
+			} else if event.Ch == 'L' || event.Ch == ':' { /* lengthen */
 				if cursor.mode == IntegerMode && cursor.int_length < MAX_INTEGER_WIDTH {
 					cursor.int_length *= 2
 				}
 				if cursor.mode == FloatingPointMode && cursor.fp_length < MAX_FLOATING_POINT_WIDTH {
 					cursor.fp_length *= 2
+				}
+			} else if event.Key == termbox.KeyCtrlE {
+				view_port.first_row++
+				if cursor.pos < view_port.first_row*view_port.bytes_per_row {
+					cursor.pos += view_port.bytes_per_row
+				}
+			} else if event.Key == termbox.KeyCtrlY {
+				view_port.first_row--
+				if cursor.pos > (view_port.first_row+view_port.number_of_rows)*view_port.bytes_per_row {
+					cursor.pos -= view_port.bytes_per_row
 				}
 			} else {
 				break
