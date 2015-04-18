@@ -5,13 +5,14 @@ import (
 	"github.com/nsf/termbox-go"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"unsafe"
 )
 
 type CursorMode int
 
 const (
-	StringMode CursorMode = iota
+	StringMode CursorMode = iota + 1
 	BitPatternMode
 	IntegerMode
 	FloatingPointMode
@@ -71,22 +72,23 @@ type Style struct {
 func drawAboutScreen(default_fg termbox.Attribute, default_bg termbox.Attribute) {
 	drawBackground(default_bg)
 	width, height := termbox.Size()
+	/* Well, this is awfully dark! */
 	template := [...]string{
-		"                                        ############################     ",
-		"                                        ##The#hex#editor#from#hell##     ",
-		"                                        ############################     ",
-		"                                                ####              #      ",
-		"      ####  #### #########  ######      ####    #### ##########   #      ",
-		"      ####  #### ######## ##########  ########  #### #########  #####    ",
-		"      ####  #### ####     ####  #### ####  #### #### ####       ##x#x    ",
-		"      ####  #### ####     ####       ####  #### #### ####         #      ",
-		"      ########## ######## ####       ########## #### ########    ###     ",
-		"      ########## ######## ####       ########## #### ########   # # #    ",
-		"      ####  #### ####     ####       ####  #### #### ####      #  #  #   ",
-		"      ####  #### ####     ####       ####  #### #### ####         #      ",
-		"      ####  #### ####     ####  #### ####  #### #### ####        # #     ",
-		"      ####  #### ######## ########## ####  #### #### #########  #   #    ",
-		"      ####  #### #########  ######   ####  #### #### ##########          "}
+		"                                    ############################   ",
+		"                                    ##The#hex#editor#from#hell##   ",
+		"                                    ############################   ",
+		"                                            ####            #      ",
+		"      #### #### ########  #####      ###    #### ########   #      ",
+		"      #### #### ####### #########  #######  #### ########  ####    ",
+		"      #### #### ####    #### #### #### #### #### ####     ##x#x    ",
+		"      #### #### ####    ####      #### #### #### ####       #      ",
+		"      ######### ####### ####      ######### #### #######   ###     ",
+		"      ######### ####### ####      ######### #### #######  # # #    ",
+		"      #### #### ####    ####      #### #### #### ####    #  #  #   ",
+		"      #### #### ####    ####      #### #### #### ####      # #     ",
+		"      #### #### ####    #### #### #### #### #### ####     #   #    ",
+		"      #### #### ####### ######### #### #### #### ####### #     #   ",
+		"      #### #### ########  #####   #### #### #### ########          "}
 
 	first_line := template[0]
 	start_x := (width - len(first_line)) / 2
@@ -290,18 +292,18 @@ func drawCommands(cursor Cursor, style Style) {
 		x_pos += drawStringAtPoint("Size:", x_pos, y+1, fg, bg)
 		if (cursor.mode == IntegerMode && cursor.int_length > MIN_INTEGER_WIDTH) ||
 			cursor.mode == FloatingPointMode && cursor.fp_length > MIN_FLOATING_POINT_WIDTH {
-			x_pos += drawStringAtPoint(" -H", x_pos, y+1, fg, bg)
+			x_pos += drawStringAtPoint(" ←H", x_pos, y+1, fg, bg)
 		} else {
-			x_pos += drawStringAtPoint(" -H", x_pos, y+1, style.space_rune_fg, bg)
+			x_pos += drawStringAtPoint(" ←H", x_pos, y+1, style.space_rune_fg, bg)
 		}
 		if (cursor.mode == IntegerMode && cursor.int_length < MAX_INTEGER_WIDTH) ||
 			cursor.mode == FloatingPointMode && cursor.fp_length < MAX_FLOATING_POINT_WIDTH {
-			x_pos += drawStringAtPoint(" +L", x_pos, y+1, fg, bg)
+			x_pos += drawStringAtPoint(" →L", x_pos, y+1, fg, bg)
 		} else {
-			x_pos += drawStringAtPoint(" +L", x_pos, y+1, style.space_rune_fg, bg)
+			x_pos += drawStringAtPoint(" →L", x_pos, y+1, style.space_rune_fg, bg)
 		}
 	} else {
-		x_pos += drawStringAtPoint("Size: -H +L", x_pos, y+1, style.space_rune_fg, bg)
+		x_pos += drawStringAtPoint("Size: ←H →L", x_pos, y+1, style.space_rune_fg, bg)
 	}
 }
 
@@ -410,10 +412,10 @@ func drawBytes(data []byte, old_view_port ViewPort, style Style, cursor Cursor, 
 func drawColorScreen(fg termbox.Attribute, bg termbox.Attribute) {
 	width, height := termbox.Size()
 	drawBackground(bg)
-	x, y := 1, 1
+	x, y := 2, 1
 	for color := 1; color <= 256; color++ {
 		if x+8 > width {
-			x = 1
+			x = 2
 			y += 2
 		}
 		if y > height {
@@ -436,97 +438,66 @@ func mainLoop(bytes []byte, style Style) {
 	var cursor Cursor
 	cursor.int_length = 4
 	cursor.fp_length = 4
+	cursor.mode = StringMode
 
 	hilite := highlightRange(bytes, cursor)
 	view_port = drawBytes(bytes, view_port, style, cursor, hilite)
 	prev_mode := cursor.mode
 	display_screen := DataScreen
+	modes := map[rune]CursorMode{
+		'i': IntegerMode,
+		't': StringMode,
+		'f': FloatingPointMode,
+		'p': BitPatternMode,
+	}
 	for {
 		event := termbox.PollEvent()
 		if event.Type == termbox.EventKey {
-			if event.Key == termbox.KeyCtrlC {
+			if event.Key == termbox.KeyCtrlP { /* color palette */
 				if display_screen == ColorScreen {
 					display_screen = DataScreen
 				} else {
 					display_screen = ColorScreen
 				}
-			} else if event.Ch == '?' {
+			} else if event.Ch == '?' { /* about */
 				if display_screen == AboutScreen {
 					display_screen = DataScreen
 				} else {
 					display_screen = AboutScreen
 				}
-			} else if display_screen == ColorScreen {
+			} else if display_screen == ColorScreen || display_screen == AboutScreen {
 				display_screen = DataScreen
-			} else if display_screen == AboutScreen {
-				display_screen = DataScreen
-			} else if event.Ch == 'j' || event.Key == termbox.KeyArrowDown {
+			} else if event.Ch == 'j' || event.Key == termbox.KeyArrowDown { /* down */
 				cursor.pos += view_port.bytes_per_row
-			} else if event.Key == termbox.KeyCtrlF || event.Key == termbox.KeyPgdn {
+			} else if event.Key == termbox.KeyCtrlF || event.Key == termbox.KeyPgdn { /* page down */
 				cursor.pos += view_port.bytes_per_row * view_port.number_of_rows
-			} else if event.Ch == 'k' || event.Key == termbox.KeyArrowUp {
+			} else if event.Ch == 'k' || event.Key == termbox.KeyArrowUp { /* up */
 				cursor.pos -= view_port.bytes_per_row
-			} else if event.Key == termbox.KeyCtrlB || event.Key == termbox.KeyPgup {
+			} else if event.Key == termbox.KeyCtrlB || event.Key == termbox.KeyPgup { /* page up */
 				cursor.pos -= view_port.bytes_per_row * view_port.number_of_rows
-			} else if event.Ch == 'h' || event.Key == termbox.KeyArrowLeft {
-				if cursor.pos > 0 {
-					cursor.pos--
-				}
-			} else if event.Ch == 'l' || event.Key == termbox.KeyArrowRight {
-				if cursor.pos < len(bytes)-1 {
-					cursor.pos++
-				}
-			} else if event.Ch == 'w' {
-				if cursor.pos+4 < len(bytes) {
-					cursor.pos += 4
-				} else {
-					cursor.pos = len(bytes) - 1
-				}
-			} else if event.Ch == 'b' {
-				if cursor.pos-4 >= 0 {
-					cursor.pos -= 4
-				} else {
-					cursor.pos = 0
-				}
-			} else if event.Ch == 'i' {
-				if cursor.mode == IntegerMode {
+			} else if event.Ch == 'h' || event.Key == termbox.KeyArrowLeft { /* left */
+				cursor.pos--
+			} else if event.Ch == 'l' || event.Key == termbox.KeyArrowRight { /* right */
+				cursor.pos++
+			} else if event.Ch == 'w' { /* forward 1 "word" */
+				cursor.pos += 4
+			} else if event.Ch == 'b' { /* back 1 "word" */
+				cursor.pos -= 4
+			} else if modes[event.Ch] != 0 {
+				if cursor.mode == modes[event.Ch] {
 					cursor.mode = prev_mode
-					prev_mode = IntegerMode
+					prev_mode = modes[event.Ch]
 				} else {
 					prev_mode = cursor.mode
-					cursor.mode = IntegerMode
+					cursor.mode = modes[event.Ch]
 				}
-			} else if event.Ch == 'u' {
+			} else if event.Ch == 'u' || event.Ch == 'U' {
 				if cursor.mode == IntegerMode {
 					cursor.unsigned = !cursor.unsigned
 				}
-			} else if event.Ch == 'e' {
+			} else if event.Ch == 'e' || event.Ch == 'E' {
 				if cursor.mode == IntegerMode || cursor.mode == FloatingPointMode {
 					cursor.big_endian = !cursor.big_endian
-				}
-			} else if event.Ch == 'f' {
-				if cursor.mode == FloatingPointMode {
-					cursor.mode = prev_mode
-					prev_mode = FloatingPointMode
-				} else {
-					prev_mode = cursor.mode
-					cursor.mode = FloatingPointMode
-				}
-			} else if event.Ch == 'p' {
-				if cursor.mode == BitPatternMode {
-					cursor.mode = prev_mode
-					prev_mode = BitPatternMode
-				} else {
-					prev_mode = cursor.mode
-					cursor.mode = BitPatternMode
-				}
-			} else if event.Ch == 't' {
-				if cursor.mode == StringMode {
-					cursor.mode = prev_mode
-					prev_mode = StringMode
-				} else {
-					prev_mode = cursor.mode
-					cursor.mode = StringMode
 				}
 			} else if event.Ch == 'H' { /* shorten */
 				if cursor.mode == IntegerMode && cursor.int_length > MIN_INTEGER_WIDTH {
@@ -542,17 +513,17 @@ func mainLoop(bytes []byte, style Style) {
 				if cursor.mode == FloatingPointMode && cursor.fp_length < MAX_FLOATING_POINT_WIDTH {
 					cursor.fp_length *= 2
 				}
-			} else if event.Key == termbox.KeyCtrlE {
+			} else if event.Key == termbox.KeyCtrlE { /* scroll down */
 				view_port.first_row++
 				if cursor.pos < view_port.first_row*view_port.bytes_per_row {
 					cursor.pos += view_port.bytes_per_row
 				}
-			} else if event.Key == termbox.KeyCtrlY {
+			} else if event.Key == termbox.KeyCtrlY { /* scroll up */
 				view_port.first_row--
 				if cursor.pos > (view_port.first_row+view_port.number_of_rows)*view_port.bytes_per_row {
 					cursor.pos -= view_port.bytes_per_row
 				}
-			} else {
+			} else if event.Ch == 'q' || event.Key == termbox.KeyEsc || event.Key == termbox.KeyCtrlC {
 				break
 			}
 			if cursor.pos < 0 {
@@ -596,6 +567,11 @@ func mainLoop(bytes []byte, style Style) {
 
 func main() {
 	var err error
+
+	if len(os.Args) != 2 {
+		fmt.Printf("Usage: %s <filename>\n", filepath.Base(os.Args[0]))
+		os.Exit(1)
+	}
 	path := os.Args[1]
 
 	bytes, err := ioutil.ReadFile(path)
