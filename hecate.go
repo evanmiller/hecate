@@ -134,6 +134,27 @@ func highlightRange(data []byte, cursor Cursor) ByteRange {
 	return hilite
 }
 
+func cursorType(cursor Cursor) string {
+	if cursor.mode == IntegerMode {
+		if cursor.unsigned {
+			return fmt.Sprintf("uint%d_t", cursor.int_length*8)
+		} else {
+			return fmt.Sprintf(" int%d_t", cursor.int_length*8)
+		}
+	} else if cursor.mode == FloatingPointMode {
+		if cursor.fp_length == 4 {
+			return " float"
+		} else if cursor.fp_length == 8 {
+			return " double"
+		}
+	} else if cursor.mode == BitPatternMode {
+		return " char"
+	} else if cursor.mode == StringMode {
+		return " char *"
+	}
+	return ""
+}
+
 func cursorLength(cursor Cursor) int {
 	if cursor.mode == IntegerMode {
 		return cursor.int_length
@@ -227,21 +248,20 @@ func drawStringAtPoint(str string, x int, y int, fg termbox.Attribute, bg termbo
 	return x_pos - x
 }
 
-func drawCommands(cursor Cursor, style Style) {
+func drawNavigationWidget(x int, y int, style Style) int {
 	fg := style.default_fg
 	bg := style.default_bg
-	width, height := termbox.Size()
-	start_x, start_y := (width-70)/2, height-2
-	x, y := start_x, start_y
-	str1 := "Navigate: ←h ↓j ↑k →l"
-	str2 := "          ←←←←b w→→→→"
-	x += drawStringAtPoint(str1, x, y, fg, bg)
-	x = start_x
+	x_pos := x
+	x_pos += drawStringAtPoint("Navigate: ←h ↓j ↑k →l", x_pos, y, fg, bg)
+	x_pos = x + 10
 	y++
-	x += drawStringAtPoint(str2, x, y, fg, bg)
-	x += 4
-	y = start_y
+	x_pos += drawStringAtPoint("←←←←b w→→→→", x_pos, y, fg, bg)
+	return x_pos - x
+}
 
+func drawCursorWidget(cursor Cursor, x int, y int, style Style) int {
+	fg := style.default_fg
+	bg := style.default_bg
 	x_pos := x
 	x_pos += drawStringAtPoint("Cursor: ", x_pos, y, fg, bg)
 	if cursor.mode == StringMode {
@@ -305,14 +325,63 @@ func drawCommands(cursor Cursor, style Style) {
 	} else {
 		x_pos += drawStringAtPoint("Size: ←H →L", x_pos, y+1, style.space_rune_fg, bg)
 	}
+	return x_pos - x
+}
+
+func drawOffsetWidget(cursor Cursor, x int, y int, style Style) int {
+	fg := style.default_fg
+	bg := style.default_bg
+	drawStringAtPoint(fmt.Sprintf("Offset:  %d", cursor.pos), x, y, fg, bg)
+	return drawStringAtPoint(fmt.Sprintf("  Type: %s", cursorType(cursor)), x, y+1, fg, bg)
+}
+
+func drawWidgets(cursor Cursor, style Style) int {
+	width, height := termbox.Size()
+	widget_width := 80
+	widget_height := 2
+	spacing := 4
+	num_spaces := 2
+	padding := 1
+	draw_nav, draw_offset := true, true
+	for ; widget_width+num_spaces*spacing > (width-2*padding) && spacing > 2; spacing-- {
+	}
+	if widget_width+num_spaces*spacing > (width - 2*padding) {
+		spacing = 4
+		draw_nav = false
+		widget_width -= 20
+		num_spaces--
+	}
+	for ; widget_width+num_spaces*spacing > (width-2*padding) && spacing > 2; spacing-- {
+	}
+	if widget_width+num_spaces*spacing > (width - 2*padding) {
+		draw_offset = false
+		widget_width -= 16
+		num_spaces--
+	}
+	start_x, start_y := (width-(widget_width+num_spaces*spacing))/2+padding, height-2
+	x, y := start_x, start_y
+	if draw_nav {
+		x += drawNavigationWidget(x, y, style)
+		x += spacing
+	}
+	x += drawCursorWidget(cursor, x, y, style)
+	if draw_offset {
+		x += spacing
+		x += drawOffsetWidget(cursor, x, y, style)
+	}
+
+	return widget_height
 }
 
 func drawBytes(data []byte, old_view_port ViewPort, style Style, cursor Cursor, hilite ByteRange) ViewPort {
 	x, y := 2, 1
 	width, height := termbox.Size()
 	rows := 1
+	drawBackground(style.default_bg)
+	legend_height := drawWidgets(cursor, style)
+
 	var new_view_port ViewPort
-	new_view_port.bytes_per_row = (width - 3) / 3
+	new_view_port.bytes_per_row = (width - 1 - legend_height) / 3
 	new_view_port.number_of_rows = (height - 3) / 3
 
 	cursor_row_within_view_port := 0
@@ -326,7 +395,6 @@ func drawBytes(data []byte, old_view_port ViewPort, style Style, cursor Cursor, 
 		}
 	}
 
-	drawBackground(style.default_bg)
 	start := new_view_port.first_row * new_view_port.bytes_per_row
 	end := start + new_view_port.number_of_rows*new_view_port.bytes_per_row
 	for index := start; index < end && index < len(data); index++ {
@@ -403,7 +471,6 @@ func drawBytes(data []byte, old_view_port ViewPort, style Style, cursor Cursor, 
 		x += drawStringAtPoint(str, x, y, hex_fg, hex_bg)
 		x++
 	}
-	drawCommands(cursor, style)
 	termbox.Flush()
 
 	return new_view_port
