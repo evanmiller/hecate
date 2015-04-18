@@ -17,6 +17,14 @@ const (
 	FloatingPointMode
 )
 
+type DisplayScreen int
+
+const (
+	DataScreen = iota
+	ColorScreen
+	AboutScreen
+)
+
 const MAX_INTEGER_WIDTH = 8
 const MIN_INTEGER_WIDTH = 1
 const MAX_FLOATING_POINT_WIDTH = 8
@@ -58,6 +66,45 @@ type Style struct {
 
 	hilite_hex_fg  termbox.Attribute
 	hilite_rune_fg termbox.Attribute
+}
+
+func drawAboutScreen(default_fg termbox.Attribute, default_bg termbox.Attribute) {
+	drawBackground(default_bg)
+	width, height := termbox.Size()
+	template := [...]string{
+		"                                        ############################     ",
+		"                                        ##The#hex#editor#from#hell##     ",
+		"                                        ############################     ",
+		"                                                ####              #      ",
+		"      ####  #### #########  ######      ####    #### ##########   #      ",
+		"      ####  #### ######## ##########  ########  #### #########  #####    ",
+		"      ####  #### ####     ####  #### ####  #### #### ####       ##x#x    ",
+		"      ####  #### ####     ####       ####  #### #### ####         #      ",
+		"      ########## ######## ####       ########## #### ########    ###     ",
+		"      ########## ######## ####       ########## #### ########   # # #    ",
+		"      ####  #### ####     ####       ####  #### #### ####      #  #  #   ",
+		"      ####  #### ####     ####       ####  #### #### ####         #      ",
+		"      ####  #### ####     ####  #### ####  #### #### ####        # #     ",
+		"      ####  #### ######## ########## ####  #### #### #########  #   #    ",
+		"      ####  #### #########  ######   ####  #### #### ##########          "}
+
+	first_line := template[0]
+	start_x := (width - len(first_line)) / 2
+	start_y := (height - len(template)) / 2
+	for index_y, line := range template {
+		for index_x, runeValue := range line {
+			bg := default_bg
+			displayRune := ' '
+			if runeValue != ' ' {
+				bg = termbox.Attribute(125)
+				if runeValue != '#' {
+					displayRune = runeValue
+				}
+			}
+			termbox.SetCell(start_x+index_x, start_y+index_y, displayRune, default_fg, bg)
+		}
+	}
+	termbox.Flush()
 }
 
 func isASCII(val byte) bool {
@@ -118,6 +165,55 @@ func drawBackground(bg termbox.Attribute) {
 				termbox.SetCell(x, y, ' ', 0, bg)
 			}
 		} */
+}
+
+func formatBytesAsNumber(data []byte, cursor Cursor) string {
+	str := ""
+	var integer uint64
+	if cursor.big_endian {
+		for i := 0; i < len(data); i++ {
+			integer = (integer * 256) + uint64(data[i])
+		}
+	} else {
+		for i := len(data) - 1; i >= 0; i-- {
+			integer = (integer * 256) + uint64(data[i])
+		}
+	}
+	if cursor.mode == IntegerMode {
+		if cursor.int_length == 1 {
+			if cursor.unsigned {
+				str = fmt.Sprintf("%d", uint8(integer))
+			} else {
+				str = fmt.Sprintf("%d", int8(integer))
+			}
+		} else if cursor.int_length == 2 {
+			if cursor.unsigned {
+				str = fmt.Sprintf("%d", uint16(integer))
+			} else {
+				str = fmt.Sprintf("%d", int16(integer))
+			}
+		} else if cursor.int_length == 4 {
+			if cursor.unsigned {
+				str = fmt.Sprintf("%d", uint32(integer))
+			} else {
+				str = fmt.Sprintf("%d", int32(integer))
+			}
+		} else if cursor.int_length == 8 {
+			if cursor.unsigned {
+				str = fmt.Sprintf("%d", uint64(integer))
+			} else {
+				str = fmt.Sprintf("%d", int64(integer))
+			}
+		}
+	} else if cursor.mode == FloatingPointMode {
+		if cursor.fp_length == 4 {
+			var integer32 uint32 = uint32(integer)
+			str = fmt.Sprintf("%.5g", *(*float32)(unsafe.Pointer(&integer32)))
+		} else if cursor.fp_length == 8 {
+			str = fmt.Sprintf("%g", *(*float64)(unsafe.Pointer(&integer)))
+		}
+	}
+	return str
 }
 
 func drawBytes(data []byte, old_view_port ViewPort, style Style, cursor Cursor, hilite ByteRange) ViewPort {
@@ -194,53 +290,9 @@ func drawBytes(data []byte, old_view_port ViewPort, style Style, cursor Cursor, 
 				}
 			}
 		} else if index == cursor.pos {
-			str := ""
 			cursor_length := cursorLength(cursor)
 			total_length := cursor_length*3 + 1
-			var integer uint64
-			if cursor.big_endian {
-				for i := 0; i < cursor_length; i++ {
-					integer = (integer * 256) + uint64(data[cursor.pos+i])
-				}
-			} else {
-				for i := cursor_length - 1; i >= 0; i-- {
-					integer = (integer * 256) + uint64(data[cursor.pos+i])
-				}
-			}
-			if cursor.mode == IntegerMode {
-				if cursor.int_length == 1 {
-					if cursor.unsigned {
-						str = fmt.Sprintf("%d", uint8(integer))
-					} else {
-						str = fmt.Sprintf("%d", int8(integer))
-					}
-				} else if cursor.int_length == 2 {
-					if cursor.unsigned {
-						str = fmt.Sprintf("%d", uint16(integer))
-					} else {
-						str = fmt.Sprintf("%d", int16(integer))
-					}
-				} else if cursor.int_length == 4 {
-					if cursor.unsigned {
-						str = fmt.Sprintf("%d", uint32(integer))
-					} else {
-						str = fmt.Sprintf("%d", int32(integer))
-					}
-				} else if cursor.int_length == 8 {
-					if cursor.unsigned {
-						str = fmt.Sprintf("%d", uint64(integer))
-					} else {
-						str = fmt.Sprintf("%d", int64(integer))
-					}
-				}
-			} else if cursor.mode == FloatingPointMode {
-				if cursor.fp_length == 4 {
-					var integer32 uint32 = uint32(integer)
-					str = fmt.Sprintf("%.5g", *(*float32)(unsafe.Pointer(&integer32)))
-				} else if cursor.fp_length == 8 {
-					str = fmt.Sprintf("%g", *(*float64)(unsafe.Pointer(&integer)))
-				}
-			}
+			str := formatBytesAsNumber(data[cursor.pos:cursor.pos+cursor_length], cursor)
 			x_copy := x - 1
 			y_copy := y + 1
 			x_copy = x_copy + (total_length-len(str))/2
@@ -265,7 +317,7 @@ func drawBytes(data []byte, old_view_port ViewPort, style Style, cursor Cursor, 
 	return new_view_port
 }
 
-func drawColors(fg termbox.Attribute, bg termbox.Attribute) {
+func drawColorScreen(fg termbox.Attribute, bg termbox.Attribute) {
 	width, height := termbox.Size()
 	drawBackground(bg)
 	x, y := 1, 1
@@ -292,58 +344,36 @@ func drawColors(fg termbox.Attribute, bg termbox.Attribute) {
 	termbox.Flush()
 }
 
-func main() {
-	var err error
-	path := os.Args[1]
-
-	bytes, err := ioutil.ReadFile(path)
-	if err != nil {
-		fmt.Printf("Error reading file: %q\n", err.Error())
-		os.Exit(1)
-	}
-	fmt.Printf("Read %d bytes from %s\n", len(bytes), path)
-	if len(bytes) < 8 {
-		fmt.Printf("File %s is too short to be edited\n", path)
-		os.Exit(1)
-	}
-
-	err = termbox.Init()
-	if err != nil {
-		panic(err)
-	}
-	defer termbox.Close()
-
+func mainLoop(bytes []byte, style Style) {
+	var view_port ViewPort
 	var cursor Cursor
 	cursor.int_length = 4
 	cursor.fp_length = 4
 
-	var hilite ByteRange
-
-	var view_port ViewPort
-	var style Style
-	style.default_bg = termbox.Attribute(1)
-	style.default_fg = termbox.Attribute(256)
-	style.rune_fg = termbox.Attribute(248)
-	style.int_fg = termbox.Attribute(154)
-	style.bit_fg = termbox.Attribute(154)
-	style.space_rune_fg = termbox.Attribute(240)
-
-	style.text_cursor_hex_bg = termbox.Attribute(167)
-	style.bit_cursor_hex_bg = termbox.Attribute(26)
-	style.int_cursor_hex_bg = termbox.Attribute(63)
-	style.fp_cursor_hex_bg = termbox.Attribute(127)
-
-	style.hilite_hex_fg = termbox.Attribute(231)
-	style.hilite_rune_fg = termbox.Attribute(256)
-
-	termbox.SetOutputMode(termbox.Output256)
-	hilite = highlightRange(bytes, cursor)
+	hilite := highlightRange(bytes, cursor)
 	view_port = drawBytes(bytes, view_port, style, cursor, hilite)
 	prev_mode := cursor.mode
+	display_screen := DataScreen
 	for {
 		event := termbox.PollEvent()
 		if event.Type == termbox.EventKey {
-			if event.Ch == 'j' || event.Key == termbox.KeyArrowDown {
+			if event.Key == termbox.KeyCtrlC {
+				if display_screen == ColorScreen {
+					display_screen = DataScreen
+				} else {
+					display_screen = ColorScreen
+				}
+			} else if event.Ch == '?' {
+				if display_screen == AboutScreen {
+					display_screen = DataScreen
+				} else {
+					display_screen = AboutScreen
+				}
+			} else if display_screen == ColorScreen {
+				display_screen = DataScreen
+			} else if display_screen == AboutScreen {
+				display_screen = DataScreen
+			} else if event.Ch == 'j' || event.Key == termbox.KeyArrowDown {
 				cursor.pos += view_port.bytes_per_row
 			} else if event.Key == termbox.KeyCtrlF || event.Key == termbox.KeyPgdn {
 				cursor.pos += view_port.bytes_per_row * view_port.number_of_rows
@@ -395,7 +425,7 @@ func main() {
 					prev_mode = cursor.mode
 					cursor.mode = FloatingPointMode
 				}
-			} else if event.Ch == 'm' {
+			} else if event.Ch == 'p' {
 				if cursor.mode == BitMode {
 					cursor.mode = prev_mode
 					prev_mode = BitMode
@@ -411,22 +441,20 @@ func main() {
 					prev_mode = cursor.mode
 					cursor.mode = StringMode
 				}
-			} else if event.Key == termbox.KeyCtrlH { /* shorten */
+			} else if event.Ch == 'H' { /* shorten */
 				if cursor.mode == IntegerMode && cursor.int_length > MIN_INTEGER_WIDTH {
 					cursor.int_length /= 2
 				}
 				if cursor.mode == FloatingPointMode && cursor.fp_length > MIN_FLOATING_POINT_WIDTH {
 					cursor.fp_length /= 2
 				}
-			} else if event.Key == termbox.KeyCtrlL { /* lengthen */
+			} else if event.Ch == 'L' { /* lengthen */
 				if cursor.mode == IntegerMode && cursor.int_length < MAX_INTEGER_WIDTH {
 					cursor.int_length *= 2
 				}
 				if cursor.mode == FloatingPointMode && cursor.fp_length < MAX_FLOATING_POINT_WIDTH {
 					cursor.fp_length *= 2
 				}
-			} else if event.Key == termbox.KeyCtrlC {
-				drawColors(style.default_fg, style.default_bg)
 			} else {
 				break
 			}
@@ -446,15 +474,67 @@ func main() {
 					view_port.first_row = 0
 				}
 			}
-			if event.Key != termbox.KeyCtrlC {
+			if display_screen == DataScreen {
 				hilite = highlightRange(bytes, cursor)
 				view_port = drawBytes(bytes, view_port, style, cursor, hilite)
+			} else if display_screen == ColorScreen {
+				drawColorScreen(style.default_fg, style.default_bg)
+			} else if display_screen == AboutScreen {
+				drawAboutScreen(style.default_fg, style.default_bg)
 			}
 		}
 		if event.Type == termbox.EventResize {
-			view_port = drawBytes(bytes, view_port, style, cursor, hilite)
+			if display_screen == DataScreen {
+				view_port = drawBytes(bytes, view_port, style, cursor, hilite)
+			} else if display_screen == ColorScreen {
+				drawColorScreen(style.default_fg, style.default_bg)
+			} else if display_screen == AboutScreen {
+				drawAboutScreen(style.default_fg, style.default_bg)
+			}
 		}
 		if event.Type == termbox.EventMouse {
 		}
 	}
+}
+
+func main() {
+	var err error
+	path := os.Args[1]
+
+	bytes, err := ioutil.ReadFile(path)
+	if err != nil {
+		fmt.Printf("Error reading file: %q\n", err.Error())
+		os.Exit(1)
+	}
+	fmt.Printf("Read %d bytes from %s\n", len(bytes), path)
+	if len(bytes) < 8 {
+		fmt.Printf("File %s is too short to be edited\n", path)
+		os.Exit(1)
+	}
+
+	err = termbox.Init()
+	if err != nil {
+		panic(err)
+	}
+	defer termbox.Close()
+
+	var style Style
+	style.default_bg = termbox.Attribute(1)
+	style.default_fg = termbox.Attribute(256)
+	style.rune_fg = termbox.Attribute(248)
+	style.int_fg = termbox.Attribute(154)
+	style.bit_fg = termbox.Attribute(154)
+	style.space_rune_fg = termbox.Attribute(240)
+
+	style.text_cursor_hex_bg = termbox.Attribute(167)
+	style.bit_cursor_hex_bg = termbox.Attribute(26)
+	style.int_cursor_hex_bg = termbox.Attribute(63)
+	style.fp_cursor_hex_bg = termbox.Attribute(127)
+
+	style.hilite_hex_fg = termbox.Attribute(231)
+	style.hilite_rune_fg = termbox.Attribute(256)
+
+	termbox.SetOutputMode(termbox.Output256)
+
+	mainLoop(bytes, style)
 }
