@@ -228,16 +228,17 @@ func drawStringAtPoint(str string, x int, y int, fg termbox.Attribute, bg termbo
 func drawCommands(cursor Cursor, style Style) {
 	fg := style.default_fg
 	bg := style.default_bg
-	_, height := termbox.Size()
-	x, y := 6, height-2
+	width, height := termbox.Size()
+	start_x, start_y := (width-70)/2, height-2
+	x, y := start_x, start_y
 	str1 := "Navigate: ←h ↓j ↑k →l"
 	str2 := "          ←←←←b w→→→→"
 	x += drawStringAtPoint(str1, x, y, fg, bg)
-	x = 6
+	x = start_x
 	y++
 	x += drawStringAtPoint(str2, x, y, fg, bg)
 	x += 4
-	y = height - 2
+	y = start_y
 
 	x_pos := x
 	x_pos += drawStringAtPoint("Cursor: ", x_pos, y, fg, bg)
@@ -252,39 +253,55 @@ func drawCommands(cursor Cursor, style Style) {
 	} else {
 		x_pos += drawStringAtPoint("(p)attern", x_pos, y, fg, bg)
 	}
-	x_pos += drawStringAtPoint(" ", x_pos, y, fg, bg)
+	x_pos++
 	if cursor.mode == IntegerMode {
 		x_pos += drawStringAtPoint("(i)nteger", x_pos, y, fg, cursorColor(cursor, style))
 	} else {
 		x_pos += drawStringAtPoint("(i)nteger", x_pos, y, fg, bg)
 	}
-	x_pos += drawStringAtPoint(" ", x_pos, y, fg, bg)
+	x_pos++
 	if cursor.mode == FloatingPointMode {
 		x_pos += drawStringAtPoint("(f)loat", x_pos, y, fg, cursorColor(cursor, style))
 	} else {
 		x_pos += drawStringAtPoint("(f)loat", x_pos, y, fg, bg)
 	}
-	str2 = ""
+	x_pos = x
 	if cursor.mode == IntegerMode || cursor.mode == FloatingPointMode {
 		if cursor.big_endian {
-			str2 += " (E)ndian"
+			x_pos += drawStringAtPoint("Toggle: (E)ndian", x_pos, y+1, fg, bg)
 		} else {
-			str2 += " (e)ndian"
+			x_pos += drawStringAtPoint("Toggle: (e)ndian", x_pos, y+1, fg, bg)
 		}
+	} else {
+		x_pos += drawStringAtPoint("Toggle: (e)ndian", x_pos, y+1, style.space_rune_fg, bg)
 	}
+	x_pos++
 	if cursor.mode == IntegerMode {
 		if cursor.unsigned {
-			str2 += " (U)nsigned"
+			x_pos += drawStringAtPoint("(U)nsigned", x_pos, y+1, fg, bg)
 		} else {
-			str2 += " (u)nsigned"
+			x_pos += drawStringAtPoint("(u)nsigned", x_pos, y+1, fg, bg)
 		}
+	} else {
+		x_pos += drawStringAtPoint("(u)nsigned", x_pos, y+1, style.space_rune_fg, bg)
 	}
-	if len(str2) > 0 {
-		str2 = "Toggle:" + str2
-		drawStringAtPoint(str2, x, y+1, fg, bg)
-	}
+	x_pos += 4
 	if cursor.mode == IntegerMode || cursor.mode == FloatingPointMode {
-		drawStringAtPoint("Size: -H +L", x_pos-11, y+1, fg, bg)
+		x_pos += drawStringAtPoint("Size:", x_pos, y+1, fg, bg)
+		if (cursor.mode == IntegerMode && cursor.int_length > MIN_INTEGER_WIDTH) ||
+			cursor.mode == FloatingPointMode && cursor.fp_length > MIN_FLOATING_POINT_WIDTH {
+			x_pos += drawStringAtPoint(" -H", x_pos, y+1, fg, bg)
+		} else {
+			x_pos += drawStringAtPoint(" -H", x_pos, y+1, style.space_rune_fg, bg)
+		}
+		if (cursor.mode == IntegerMode && cursor.int_length < MAX_INTEGER_WIDTH) ||
+			cursor.mode == FloatingPointMode && cursor.fp_length < MAX_FLOATING_POINT_WIDTH {
+			x_pos += drawStringAtPoint(" +L", x_pos, y+1, fg, bg)
+		} else {
+			x_pos += drawStringAtPoint(" +L", x_pos, y+1, style.space_rune_fg, bg)
+		}
+	} else {
+		x_pos += drawStringAtPoint("Size: -H +L", x_pos, y+1, style.space_rune_fg, bg)
 	}
 }
 
