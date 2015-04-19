@@ -3,4 +3,5 @@ the hex editor from hell
 
 Usage:
 
-    go run ./*.go <filename>
+    go build
+    ./hecate /path/to/binary/file
