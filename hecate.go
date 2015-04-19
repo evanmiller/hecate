@@ -5,10 +5,11 @@ import (
 	"github.com/nsf/termbox-go"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 )
 
 type DisplayScreen int
+
+const PROGRAM_NAME = "hecate"
 
 const (
 	DataScreen = iota
@@ -382,7 +383,7 @@ func main() {
 	var err error
 
 	if len(os.Args) != 2 {
-		fmt.Printf("Usage: %s <filename>\n", filepath.Base(os.Args[0]))
+		fmt.Printf("Usage: %s <filename>\n", PROGRAM_NAME)
 		os.Exit(1)
 	}
 	path := os.Args[1]
