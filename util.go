@@ -5,7 +5,7 @@ import (
 )
 
 func isASCII(val byte) bool {
-	return (val >= 0x20 && val < 0x80)
+	return (val >= 0x20 && val < 0x7f)
 }
 
 func isCode(val byte) bool {
