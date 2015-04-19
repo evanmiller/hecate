@@ -103,15 +103,6 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event) int {
 	if screen.cursor.pos+screen.cursor.length() > len(screen.bytes) {
 		screen.cursor.pos = len(screen.bytes) - screen.cursor.length()
 	}
-	if screen.cursor.pos >= (screen.view_port.first_row+screen.view_port.number_of_rows)*screen.view_port.bytes_per_row {
-		screen.view_port.first_row += screen.view_port.number_of_rows
-	}
-	for screen.cursor.pos < screen.view_port.first_row*screen.view_port.bytes_per_row {
-		screen.view_port.first_row -= screen.view_port.number_of_rows
-		if screen.view_port.first_row < 0 {
-			screen.view_port.first_row = 0
-		}
-	}
 	screen.hilite = screen.cursor.highlightRange(screen.bytes)
 
 	return DATA_SCREEN_INDEX
@@ -121,21 +112,32 @@ func (screen *DataScreen) performLayout() {
 	width, height := termbox.Size()
 	legend_height := heightOfWidgets()
 	line_height := 3
+	cursor := screen.cursor
+	cursor_row_within_view_port := 0
+
+	if cursor.pos >= (screen.view_port.first_row+screen.view_port.number_of_rows)*screen.view_port.bytes_per_row {
+		screen.view_port.first_row += screen.view_port.number_of_rows
+	}
+	for cursor.pos < screen.view_port.first_row*screen.view_port.bytes_per_row {
+		screen.view_port.first_row -= screen.view_port.number_of_rows
+	}
 
 	var new_view_port ViewPort
 	new_view_port.bytes_per_row = (width - 3) / 3
 	new_view_port.number_of_rows = (height - 1 - legend_height) / line_height
+	new_view_port.first_row = screen.view_port.first_row
 
-	cursor := screen.cursor
-	cursor_row_within_view_port := 0
 	if screen.view_port.bytes_per_row > 0 {
 		cursor_row_within_view_port = cursor.pos/screen.view_port.bytes_per_row - screen.view_port.first_row
 		if cursor.pos/new_view_port.bytes_per_row > cursor_row_within_view_port {
-			new_view_port.first_row = cursor.pos/screen.view_port.bytes_per_row - cursor_row_within_view_port
+			new_view_port.first_row = cursor.pos/new_view_port.bytes_per_row - cursor_row_within_view_port
 		}
 		if cursor.pos/new_view_port.bytes_per_row >= new_view_port.first_row+new_view_port.number_of_rows {
 			new_view_port.first_row = cursor.pos/new_view_port.bytes_per_row - new_view_port.number_of_rows + 1
 		}
+	}
+	if new_view_port.first_row < 0 {
+		new_view_port.first_row = 0
 	}
 
 	screen.view_port = new_view_port
