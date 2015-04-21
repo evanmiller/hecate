@@ -5,6 +5,7 @@ import (
 	"github.com/nsf/termbox-go"
 	"io/ioutil"
 	"os"
+	"syscall"
 )
 
 const PROGRAM_NAME = "hecate"
@@ -16,6 +17,12 @@ func mainLoop(bytes []byte, style Style) {
 	for {
 		event := termbox.PollEvent()
 		if event.Type == termbox.EventKey {
+			if event.Key == termbox.KeyCtrlZ {
+				process, _ := os.FindProcess(os.Getpid())
+				termbox.Close()
+				process.Signal(syscall.SIGSTOP)
+				termbox.Init()
+			}
 			new_screen_index := display_screen.handleKeyEvent(event)
 			if new_screen_index < len(screens) {
 				display_screen = screens[new_screen_index]
