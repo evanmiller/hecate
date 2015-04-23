@@ -12,6 +12,9 @@ written in Go with Vim-like controls; place the cursor over some bytes and
 choose a mode (**t** for text, **p** for a bit pattern, **i** for an integer,
 **f** for a floating point) to see what those bytes represent.
 
+Screenshot:
+![Hecate screenshot](http://www.evanmiller.org/images/hecate-screenshot1.png)
+
 Full list of commands:
 
 <table>
