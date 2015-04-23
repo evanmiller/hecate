@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/nsf/termbox-go"
 	"io/ioutil"
 	"os"
 	"syscall"
+
+	"github.com/nsf/termbox-go"
 )
 
 const PROGRAM_NAME = "hecate"
