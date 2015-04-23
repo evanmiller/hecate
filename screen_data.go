@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"unicode"
+	"unicode/utf8"
+
 	"github.com/nsf/termbox-go"
 )
 
@@ -12,11 +15,55 @@ type ViewPort struct {
 }
 
 type DataScreen struct {
-	bytes     []byte
-	cursor    Cursor
-	hilite    ByteRange
-	view_port ViewPort
-	prev_mode CursorMode
+	bytes        []byte
+	cursor       Cursor
+	hilite       ByteRange
+	view_port    ViewPort
+	prev_mode    CursorMode
+	field_editor *FieldEditor
+}
+
+type FieldEditor struct {
+	value      []byte
+	cursor_pos int
+}
+
+func removeRuneAtIndex(value []byte, index int) []byte {
+	var runes []rune
+	new_string := make([]byte, utf8.UTFMax*(len(value)+1))
+	pos := 0
+	for _, runeValue := range string(value) {
+		if pos != index {
+			runes = append(runes, runeValue)
+		}
+		pos++
+	}
+	pos = 0
+	for _, runeValue := range runes {
+		pos += utf8.EncodeRune(new_string[pos:], runeValue)
+	}
+	return new_string[0:pos]
+}
+
+func insertRuneAtIndex(value []byte, index int, newRuneValue rune) []byte {
+	var runes []rune
+	new_string := make([]byte, utf8.UTFMax*(len(value)+1))
+	pos := 0
+	for _, runeValue := range string(value) {
+		if pos == index {
+			runes = append(runes, newRuneValue)
+		}
+		runes = append(runes, runeValue)
+		pos++
+	}
+	if index == pos {
+		runes = append(runes, newRuneValue)
+	}
+	pos = 0
+	for _, runeValue := range runes {
+		pos += utf8.EncodeRune(new_string[pos:], runeValue)
+	}
+	return new_string[0:pos]
 }
 
 func (screen *DataScreen) handleKeyEvent(event termbox.Event) int {
@@ -30,6 +77,42 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event) int {
 		return PALETTE_SCREEN_INDEX
 	} else if event.Ch == '?' { // about
 		return ABOUT_SCREEN_INDEX
+	} else if screen.field_editor != nil {
+		if event.Key == termbox.KeyEnter {
+			if len(screen.field_editor.value) > 0 {
+				if n, _ := fmt.Sscanf(string(screen.field_editor.value), "%v", &screen.cursor.pos); n > 0 {
+					screen.field_editor = nil
+				}
+			} else {
+				screen.field_editor = nil
+			}
+		} else if event.Key == termbox.KeyEsc {
+			screen.field_editor = nil
+		} else if event.Key == termbox.KeyArrowLeft {
+			if screen.field_editor.cursor_pos > 0 {
+				screen.field_editor.cursor_pos--
+			}
+		} else if event.Key == termbox.KeyArrowUp || event.Key == termbox.KeyCtrlA {
+			screen.field_editor.cursor_pos = 0
+		} else if event.Key == termbox.KeyArrowRight {
+			if screen.field_editor.cursor_pos < utf8.RuneCount(screen.field_editor.value) {
+				screen.field_editor.cursor_pos++
+			}
+		} else if event.Key == termbox.KeyArrowDown || event.Key == termbox.KeyCtrlE {
+			screen.field_editor.cursor_pos = utf8.RuneCount(screen.field_editor.value)
+		} else if event.Key == termbox.KeyCtrlH || event.Key == termbox.KeyBackspace {
+			if screen.field_editor.cursor_pos > 0 {
+				screen.field_editor.value = removeRuneAtIndex(screen.field_editor.value, screen.field_editor.cursor_pos-1)
+				screen.field_editor.cursor_pos--
+			}
+		} else if unicode.IsPrint(event.Ch) {
+			screen.field_editor.value = insertRuneAtIndex(screen.field_editor.value, screen.field_editor.cursor_pos, event.Ch)
+			screen.field_editor.cursor_pos++
+		}
+	} else if event.Ch == ':' {
+		screen.field_editor = new(FieldEditor)
+	} else if event.Ch == 'x' {
+		screen.cursor.hex_mode = !screen.cursor.hex_mode
 	} else if event.Ch == 'j' || event.Key == termbox.KeyArrowDown { // down
 		screen.cursor.pos += screen.view_port.bytes_per_row
 	} else if event.Key == termbox.KeyCtrlF || event.Key == termbox.KeyPgdn { // page down
@@ -104,6 +187,9 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event) int {
 		screen.cursor.pos = len(screen.bytes) - screen.cursor.length()
 	}
 	screen.hilite = screen.cursor.highlightRange(screen.bytes)
+	if screen.field_editor == nil {
+		termbox.HideCursor()
+	}
 
 	return DATA_SCREEN_INDEX
 }
@@ -147,8 +233,8 @@ func (screen *DataScreen) drawScreen(style Style) {
 	x, y := 2, 1
 	x_pad := 2
 	line_height := 3
-	width, _ := termbox.Size()
-	drawWidgets(screen.cursor, style)
+	width, height := termbox.Size()
+	widget_width, widget_height := drawWidgets(screen.cursor, style)
 
 	cursor := screen.cursor
 	hilite := screen.hilite
@@ -236,5 +322,18 @@ func (screen *DataScreen) drawScreen(style Style) {
 		str := fmt.Sprintf("%02x", b)
 		x += drawStringAtPoint(str, x, y, hex_fg, hex_bg)
 		x++
+	}
+
+	if screen.field_editor != nil {
+		if widget_width > 46 {
+			x = (width-widget_width)/2 + widget_width - 9
+			y = height - 2
+		} else {
+			x = (width - 10) / 2
+			y = height - widget_height - 1
+		}
+		termbox.SetCursor(x+2+screen.field_editor.cursor_pos, y)
+		drawStringAtPoint(fmt.Sprintf(" %-8s ", screen.field_editor.value), x+1, y,
+			style.field_editor_fg, style.field_editor_bg)
 	}
 }

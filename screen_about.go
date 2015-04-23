@@ -69,8 +69,8 @@ func (screen *AboutScreen) drawScreen(style Style) {
 				if runeValue != '#' {
 					displayRune = runeValue
 				}
+				termbox.SetCell(x_pos, y_pos, displayRune, default_fg, bg)
 			}
-			termbox.SetCell(x_pos, y_pos, displayRune, default_fg, bg)
 			x_pos++
 		}
 		y_pos++
@@ -83,6 +83,9 @@ func (screen *AboutScreen) drawScreen(style Style) {
 
 		{"b", "left 4 bytes"},
 		{"w", "right 4 bytes"},
+
+		{"g", "first byte"},
+		{"G", "last byte"},
 
 		{"ctrl-e", "scroll down"},
 		{"ctrl-y", "scroll up"},
@@ -102,6 +105,9 @@ func (screen *AboutScreen) drawScreen(style Style) {
 
 		{"H", "shrink cursor"},
 		{"L", "grow cursor"},
+
+		{":", "jump to offset"},
+		{"x", "toggle hex offset"},
 
 		{"?", "this screen"},
 		{"q", "quit program"},

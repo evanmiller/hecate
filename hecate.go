@@ -52,7 +52,6 @@ func main() {
 		fmt.Printf("Error reading file: %q\n", err.Error())
 		os.Exit(1)
 	}
-	fmt.Printf("Read %d bytes from %s\n", len(bytes), path)
 	if len(bytes) < 8 {
 		fmt.Printf("File %s is too short to be edited\n", path)
 		os.Exit(1)

@@ -20,6 +20,9 @@ type Style struct {
 
 	hilite_hex_fg  termbox.Attribute
 	hilite_rune_fg termbox.Attribute
+
+	field_editor_bg termbox.Attribute
+	field_editor_fg termbox.Attribute
 }
 
 func defaultStyle() Style {
@@ -38,6 +41,9 @@ func defaultStyle() Style {
 
 	style.hilite_hex_fg = termbox.Attribute(231)
 	style.hilite_rune_fg = termbox.Attribute(256)
+
+	style.field_editor_bg = style.default_fg
+	style.field_editor_fg = style.default_bg
 
 	return style
 }

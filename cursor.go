@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/nsf/termbox-go"
 	"unsafe"
+
+	"github.com/nsf/termbox-go"
 )
 
 type CursorMode int
@@ -32,6 +33,7 @@ type Cursor struct {
 	mode       CursorMode
 	unsigned   bool
 	big_endian bool
+	hex_mode   bool
 }
 
 func (cursor Cursor) c_type() string {

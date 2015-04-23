@@ -70,7 +70,7 @@ func heightOfWidgets() int {
 	return max_widget_height
 }
 
-func drawWidgets(cursor Cursor, style Style) int {
+func drawWidgets(cursor Cursor, style Style) (int, int) {
 	widgets := listOfWidgets()
 
 	width, height := termbox.Size()
@@ -89,5 +89,5 @@ func drawWidgets(cursor Cursor, style Style) int {
 		}
 	}
 
-	return max_widget_height
+	return total_widget_width + num_spaces*spacing, max_widget_height
 }
