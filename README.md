@@ -1,5 +1,5 @@
 # hecate
-The Hex Editor From Hell
+The Hex Editor From Hell!
 
 Usage:
 
