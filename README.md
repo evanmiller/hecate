@@ -23,12 +23,12 @@ Full list of commands:
 <tr><td>b</td><td>left 4 bytes</td> <td>e</td><td>toggle endianness</td></tr>
 <tr><td>w</td><td>right 4 bytes</td> <td>u</td><td>toggle signedness</td></tr>
 
-<tr><td>g</td><td>first byte</td> <td>ctrl-e</td><td>scroll down</td></tr>
-<tr><td>G</td><td>last byte</td> <td>ctrl-y</td><td>scroll up</td></tr>
+<tr><td>g</td><td>first byte</td> <td>H</td><td>shrink cursor</td></tr>
+<tr><td>G</td><td>last byte</td> <td>L</td><td>grow cursor</td></tr>
 
 <tr><td>ctrl-f</td><td>page down</td> <td>:</td><td>jump to offset</td></tr>
 <tr><td>ctrl-b</td><td>page up</td> <td>x</td><td>toggle hex offset</td></tr>
 
-<tr><td>H</td><td>shrink cursor</td> <td>?</td><td>help screen</td></tr>
-<tr><td>L</td><td>grow cursor</td> <td>q</td><td>quit program</td></tr>
+<tr><td>ctrl-e</td><td>scroll down</td> <td>?</td><td>help screen</td></tr>
+<tr><td>ctrl-y</td><td>scroll up</td> <td>q</td><td>quit program</td></tr>
 </table>
