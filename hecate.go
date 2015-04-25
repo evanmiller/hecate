@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"syscall"
+
+	"launchpad.net/gommap"
 
 	"github.com/nsf/termbox-go"
 )
@@ -47,13 +48,26 @@ func main() {
 	}
 	path := os.Args[1]
 
-	bytes, err := ioutil.ReadFile(path)
+	file, err := os.Open(path)
 	if err != nil {
-		fmt.Printf("Error reading file: %q\n", err.Error())
+		fmt.Printf("Error opening file: %q\n", err.Error())
 		os.Exit(1)
 	}
-	if len(bytes) < 8 {
+
+	fi, err := file.Stat()
+	if err != nil {
+		fmt.Printf("Error stat'ing file: %q\n", err.Error())
+		os.Exit(1)
+	}
+
+	if fi.Size() < 8 {
 		fmt.Printf("File %s is too short to be edited\n", path)
+		os.Exit(1)
+	}
+
+	mm, err := gommap.MapRegion(file.Fd(), 0, fi.Size(), gommap.PROT_READ, gommap.MAP_SHARED)
+	if err != nil {
+		fmt.Printf("Error mmap'ing file: %q\n", err.Error())
 		os.Exit(1)
 	}
 
@@ -66,5 +80,5 @@ func main() {
 	style := defaultStyle()
 	termbox.SetOutputMode(termbox.Output256)
 
-	mainLoop(bytes, style)
+	mainLoop(mm, style)
 }
