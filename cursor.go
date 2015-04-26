@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"unsafe"
+	"math"
 
 	"github.com/nsf/termbox-go"
 )
@@ -154,9 +154,9 @@ func (cursor Cursor) formatBytesAsNumber(data []byte) string {
 	} else if cursor.mode == FloatingPointMode {
 		if cursor.fp_length == 4 {
 			var integer32 uint32 = uint32(integer)
-			str = fmt.Sprintf("%.5g", *(*float32)(unsafe.Pointer(&integer32)))
+			str = fmt.Sprintf("%.5g", math.Float32frombits(integer32))
 		} else if cursor.fp_length == 8 {
-			str = fmt.Sprintf("%g", *(*float64)(unsafe.Pointer(&integer)))
+			str = fmt.Sprintf("%g", math.Float64frombits(integer))
 		}
 	}
 	return str
