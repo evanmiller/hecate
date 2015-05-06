@@ -3,9 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
-	"syscall"
 
-	"launchpad.net/gommap"
+	mmap "github.com/edsrzf/mmap-go"
 
 	"github.com/nsf/termbox-go"
 )
@@ -19,12 +18,8 @@ func mainLoop(bytes []byte, style Style) {
 	for {
 		event := termbox.PollEvent()
 		if event.Type == termbox.EventKey {
-			if event.Key == termbox.KeyCtrlZ {
-				process, _ := os.FindProcess(os.Getpid())
-				termbox.Close()
-				process.Signal(syscall.SIGSTOP)
-				termbox.Init()
-			}
+			handleSpecialKeys(event.Key)
+
 			new_screen_index := display_screen.handleKeyEvent(event)
 			if new_screen_index < len(screens) {
 				display_screen = screens[new_screen_index]
@@ -65,7 +60,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	mm, err := gommap.MapRegion(file.Fd(), 0, fi.Size(), gommap.PROT_READ, gommap.MAP_SHARED)
+	mm, err := mmap.Map(file, mmap.RDONLY, 0)
 	if err != nil {
 		fmt.Printf("Error mmap'ing file: %q\n", err.Error())
 		os.Exit(1)

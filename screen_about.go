@@ -65,7 +65,7 @@ func (screen *AboutScreen) drawScreen(style Style) {
 			bg := default_bg
 			displayRune := ' '
 			if runeValue != ' ' {
-				bg = termbox.Attribute(125)
+				bg = style.about_logo_bg
 				if runeValue != '#' {
 					displayRune = runeValue
 				}
