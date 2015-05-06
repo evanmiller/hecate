@@ -73,7 +73,7 @@ func main() {
 	defer termbox.Close()
 
 	style := defaultStyle()
-	termbox.SetOutputMode(termbox.Output256)
+	termbox.SetOutputMode(outputMode)
 
 	mainLoop(mm, style)
 }
