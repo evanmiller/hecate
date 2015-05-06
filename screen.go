@@ -7,7 +7,7 @@ import (
 type Screen interface {
 	handleKeyEvent(event termbox.Event) int
 	performLayout()
-	drawScreen(style Style)
+	drawScreen(style *Style)
 }
 
 const (
@@ -42,9 +42,9 @@ func drawBackground(bg termbox.Attribute) {
 	termbox.Clear(0, bg)
 }
 
-func layoutAndDrawScreen(screen Screen, style Style) {
+func layoutAndDrawScreen(screen Screen, style *Style) {
 	screen.performLayout()
-	drawBackground(style.default_bg)
+	drawBackground(style.Bg())
 	screen.drawScreen(style)
 	termbox.Flush()
 }

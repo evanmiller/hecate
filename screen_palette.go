@@ -14,11 +14,11 @@ func (screen *PaletteScreen) handleKeyEvent(event termbox.Event) int {
 func (screen *PaletteScreen) performLayout() {
 }
 
-func (screen *PaletteScreen) drawScreen(style Style) {
+func (screen *PaletteScreen) drawScreen(style *Style) {
+	style = style.Sub("Palette")
 	width, height := termbox.Size()
-	fg, bg := style.default_fg, style.default_bg
 	x, y := 2, 1
-	for color := 1; color <= 256; color++ {
+	for _, color := range availableColors() {
 		if x+8 > width {
 			x = 2
 			y += 2
@@ -32,7 +32,7 @@ func (screen *PaletteScreen) drawScreen(style Style) {
 		x += 2
 
 		str := fmt.Sprintf("%3d", color)
-		x += drawStringAtPoint(str, x, y, fg, bg)
+		x += style.StringOut(str, x, y)
 		x += 2
 	}
 }

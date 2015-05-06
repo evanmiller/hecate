@@ -18,29 +18,87 @@ func handleSpecialKeys(key termbox.Key) {
 	}
 }
 
+func availableColors() []int {
+	result := make([]int, 256)
+	for i := 1; i <= 256; i++ {
+		result[i-1] = int(i)
+	}
+	return result
+}
+
 const outputMode = termbox.Output256
 
-func defaultStyle() Style {
-	var style Style
-	style.default_bg = termbox.Attribute(1)
-	style.default_fg = termbox.Attribute(256)
-	style.rune_fg = termbox.Attribute(248)
-	style.int_fg = termbox.Attribute(154)
-	style.bit_fg = termbox.Attribute(154)
-	style.space_rune_fg = termbox.Attribute(240)
+func defaultStyle() *Style {
+	style, err := StyleFromJson(`
+ {
+ 	"BG": 1,
+ 	"FG": 256,
+	"Data": {
+		"Hex": {
+			"Highlight": {
+				"FG": 231
+			}
+		},
 
-	style.text_cursor_hex_bg = termbox.Attribute(167)
-	style.bit_cursor_hex_bg = termbox.Attribute(26)
-	style.int_cursor_hex_bg = termbox.Attribute(63)
-	style.fp_cursor_hex_bg = termbox.Attribute(127)
+		"Rune": {
+			"FG": 248,
 
-	style.hilite_hex_fg = termbox.Attribute(231)
-	style.hilite_rune_fg = termbox.Attribute(256)
+			"Code": {
+				"FG": 240,
 
-	style.about_logo_bg = termbox.Attribute(125)
+				"Highlight": {
+					"FG": 248
+				}
+			},
 
-	style.field_editor_bg = style.default_fg
-	style.field_editor_fg = style.default_bg
+			"Highlight": {
+				"FG": 256
+			}
+		},
+
+		"Bit": {
+			"FG": 154
+		},
+
+		"Int": {
+			"FG": 154
+		},
+
+		"Cursor": {
+			"Int": {
+				"BG": 63
+			},
+			"Bit": {
+				"BG": 26
+			},
+			"Text": {
+				"BG": 167
+			},
+			"Float": {
+				"BG": 127
+			}
+		},
+
+		"Disabled": {
+			"FG": 240
+		},
+
+		"Edit": {
+			"BG": 256,
+ 			"FG": 1
+		}
+	},
+ 	"About": {
+ 		"Logo": {
+ 			"BG": 125
+ 		}
+ 	},
+ 	"Palette": {}
+ }`)
+
+	if err != nil {
+		panic(err)
+	}
 
 	return style
 }

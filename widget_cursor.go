@@ -30,18 +30,20 @@ func (widget CursorWidget) layoutUnderPressure(pressure int) (int, int) {
 	return runeCount, height
 }
 
-func (widget CursorWidget) drawAtPoint(cursor Cursor, x int, y int, pressure int, style Style) (int, int) {
-	fg := style.default_fg
-	bg := style.default_bg
+func (widget CursorWidget) drawAtPoint(cursor Cursor, x int, y int, pressure int, style *Style) (int, int) {
 	x_pos := x
 	y_pos := y
+
+	cursorstyle := cursor.style(style)
+	disabled := style.Sub("Disabled")
+
 	if pressure < 5 || pressure == 6 {
-		x_pos += drawStringAtPoint("Cursor: ", x_pos, y_pos, fg, bg)
+		x_pos += style.StringOut("Cursor: ", x_pos, y_pos)
 	}
 	if cursor.mode == StringMode {
-		x_pos += drawStringAtPoint("(t)ext", x_pos, y_pos, fg, cursor.color(style))
+		x_pos += cursorstyle.StringOut("(t)ext", x_pos, y_pos)
 	} else {
-		x_pos += drawStringAtPoint("(t)ext", x_pos, y_pos, fg, bg)
+		x_pos += style.StringOut("(t)ext", x_pos, y_pos)
 	}
 	if pressure < 6 {
 		x_pos++
@@ -52,9 +54,9 @@ func (widget CursorWidget) drawAtPoint(cursor Cursor, x int, y int, pressure int
 		y_pos++
 	}
 	if cursor.mode == BitPatternMode {
-		x_pos += drawStringAtPoint("(p)attern", x_pos, y_pos, fg, cursor.color(style))
+		x_pos += cursorstyle.StringOut("(p)attern", x_pos, y_pos)
 	} else {
-		x_pos += drawStringAtPoint("(p)attern", x_pos, y_pos, fg, bg)
+		x_pos += style.StringOut("(p)attern", x_pos, y_pos)
 	}
 	if pressure < 6 {
 		x_pos++
@@ -66,9 +68,9 @@ func (widget CursorWidget) drawAtPoint(cursor Cursor, x int, y int, pressure int
 		y_pos++
 	}
 	if cursor.mode == IntegerMode {
-		x_pos += drawStringAtPoint("(i)nteger", x_pos, y_pos, fg, cursor.color(style))
+		x_pos += cursorstyle.StringOut("(i)nteger", x_pos, y_pos)
 	} else {
-		x_pos += drawStringAtPoint("(i)nteger", x_pos, y_pos, fg, bg)
+		x_pos += style.StringOut("(i)nteger", x_pos, y_pos)
 	}
 	if pressure < 8 {
 		x_pos++
@@ -77,17 +79,17 @@ func (widget CursorWidget) drawAtPoint(cursor Cursor, x int, y int, pressure int
 		y_pos++
 	}
 	if cursor.mode == FloatingPointMode {
-		x_pos += drawStringAtPoint("(f)loat", x_pos, y_pos, fg, cursor.color(style))
+		x_pos += cursorstyle.StringOut("(f)loat", x_pos, y_pos)
 	} else {
-		x_pos += drawStringAtPoint("(f)loat", x_pos, y_pos, fg, bg)
+		x_pos += style.StringOut("(f)loat", x_pos, y_pos)
 	}
 	x_pos = x
 	y_pos++
 	if pressure < 5 || pressure == 6 {
 		if cursor.mode == IntegerMode || cursor.mode == FloatingPointMode {
-			x_pos += drawStringAtPoint("Toggle: ", x_pos, y_pos, fg, bg)
+			x_pos += style.StringOut("Toggle: ", x_pos, y_pos)
 		} else {
-			x_pos += drawStringAtPoint("Toggle: ", x_pos, y_pos, style.space_rune_fg, bg)
+			x_pos += disabled.StringOut("Toggle: ", x_pos, y_pos)
 		}
 	}
 	if pressure >= 8 {
@@ -95,13 +97,13 @@ func (widget CursorWidget) drawAtPoint(cursor Cursor, x int, y int, pressure int
 	}
 	if cursor.mode == IntegerMode || cursor.mode == FloatingPointMode {
 		if cursor.big_endian {
-			x_pos += drawStringAtPoint("(E)ndian", x_pos, y_pos, fg, bg)
+			x_pos += style.StringOut("(E)ndian", x_pos, y_pos)
 		} else {
-			x_pos += drawStringAtPoint("(e)ndian", x_pos, y_pos, fg, bg)
+			x_pos += style.StringOut("(e)ndian", x_pos, y_pos)
 		}
 		x_pos++
 	} else if cursor.mode == BitPatternMode || cursor.mode == StringMode {
-		x_pos += drawStringAtPoint("(e)ndian", x_pos, y_pos, style.space_rune_fg, bg)
+		x_pos += disabled.StringOut("(e)ndian", x_pos, y_pos)
 		x_pos++
 	}
 	if pressure >= 8 {
@@ -112,29 +114,29 @@ func (widget CursorWidget) drawAtPoint(cursor Cursor, x int, y int, pressure int
 	}
 	if cursor.mode == IntegerMode {
 		if cursor.unsigned {
-			x_pos += drawStringAtPoint("(U)nsigned", x_pos, y_pos, fg, bg)
+			x_pos += style.StringOut("(U)nsigned", x_pos, y_pos)
 		} else {
-			x_pos += drawStringAtPoint("(u)nsigned", x_pos, y_pos, fg, bg)
+			x_pos += style.StringOut("(u)nsigned", x_pos, y_pos)
 		}
 	} else {
-		x_pos += drawStringAtPoint("(u)nsigned", x_pos, y_pos, style.space_rune_fg, bg)
+		x_pos += disabled.StringOut("(u)nsigned", x_pos, y_pos)
 	}
 	if pressure < 6 {
 		x_pos += 4
 		if cursor.mode == IntegerMode || cursor.mode == FloatingPointMode {
-			x_pos += drawStringAtPoint("Size:", x_pos, y_pos, fg, bg)
+			x_pos += style.StringOut("Size:", x_pos, y_pos)
 			if cursor.length() > cursor.minimumLength() {
-				x_pos += drawStringAtPoint(" ←H", x_pos, y_pos, fg, bg)
+				x_pos += style.StringOut(" ←H", x_pos, y_pos)
 			} else {
-				x_pos += drawStringAtPoint(" ←H", x_pos, y_pos, style.space_rune_fg, bg)
+				x_pos += disabled.StringOut(" ←H", x_pos, y_pos)
 			}
 			if cursor.length() < cursor.maximumLength() {
-				x_pos += drawStringAtPoint(" →L", x_pos, y_pos, fg, bg)
+				x_pos += style.StringOut(" →L", x_pos, y_pos)
 			} else {
-				x_pos += drawStringAtPoint(" →L", x_pos, y_pos, style.space_rune_fg, bg)
+				x_pos += disabled.StringOut(" →L", x_pos, y_pos)
 			}
 		} else {
-			x_pos += drawStringAtPoint("Size: ←H →L", x_pos, y_pos, style.space_rune_fg, bg)
+			x_pos += disabled.StringOut("Size: ←H →L", x_pos, y_pos)
 		}
 	}
 	return x_pos - x, y_pos - y + 1
