@@ -18,9 +18,9 @@ func (widget OffsetWidget) drawAtPoint(cursor Cursor, x int, y int, pressure int
 		return 0, 0
 	}
 	if cursor.hex_mode {
-		style.StringOut(fmt.Sprintf("Offset(:)  0x%x", cursor.pos), x, y)
+		StringOut(fmt.Sprintf("Offset(:)  0x%x", cursor.pos), x, y, style)
 	} else {
-		style.StringOut(fmt.Sprintf("Offset(:)  %d", cursor.pos), x, y)
+		StringOut(fmt.Sprintf("Offset(:)  %d", cursor.pos), x, y, style)
 	}
-	return style.StringOut(fmt.Sprintf("  Type :  %s", cursor.c_type()), x, y+1), 2
+	return StringOut(fmt.Sprintf("  Type :  %s", cursor.c_type()), x, y+1, style), 2
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/nsf/termbox-go"
 	"unicode/utf8"
 )
 
@@ -52,4 +53,18 @@ func insertRuneAtIndex(value []byte, index int, newRuneValue rune) []byte {
 		pos += utf8.EncodeRune(new_string[pos:], runeValue)
 	}
 	return new_string[0:pos]
+}
+
+func SetCell(x, y int, ch rune, s *Style) {
+	termbox.SetCell(x, y, ch, s.Fg(), s.Bg())
+}
+
+func StringOut(str string, x, y int, s *Style) int {
+	x_pos := x
+	fg, bg := s.Fg(), s.Bg()
+	for _, runeValue := range str {
+		termbox.SetCell(x_pos, y, runeValue, fg, bg)
+		x_pos++
+	}
+	return x_pos - x
 }

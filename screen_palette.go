@@ -32,7 +32,7 @@ func (screen *PaletteScreen) drawScreen(style *Style) {
 		x += 2
 
 		str := fmt.Sprintf("%3d", color)
-		x += style.StringOut(str, x, y)
+		x += StringOut(str, x, y, style)
 		x += 2
 	}
 }

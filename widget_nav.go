@@ -20,13 +20,13 @@ func (widget NavigationWidget) layoutUnderPressure(pressure int) (int, int) {
 func (widget NavigationWidget) drawAtPoint(cursor Cursor, x int, y int, pressure int, style *Style) (int, int) {
 	x_pos := x
 	if pressure == 0 {
-		x_pos += style.StringOut("Navigate: ←h ↓j ↑k →l", x_pos, y)
+		x_pos += StringOut("Navigate: ←h ↓j ↑k →l", x_pos, y, style)
 		x_pos = x + 10
-		x_pos += style.StringOut("←←←←b w→→→→", x_pos, y+1)
+		x_pos += StringOut("←←←←b w→→→→", x_pos, y+1, style)
 	} else if pressure == 1 {
-		x_pos += style.StringOut("Navigate: ←h ↓j", x_pos, y)
+		x_pos += StringOut("Navigate: ←h ↓j", x_pos, y, style)
 		x_pos = x + 10
-		x_pos += style.StringOut("↑k →l", x_pos, y+1)
+		x_pos += StringOut("↑k →l", x_pos, y+1, style)
 	}
 	return x_pos - x, 2
 }

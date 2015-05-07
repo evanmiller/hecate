@@ -192,8 +192,8 @@ func (screen *DataScreen) drawScreen(style *Style) {
 		}
 		if index >= cursor.pos && index < cursor.pos+cursor_length {
 			hex = cursor.style(style)
-			hex.SetCell(x-1, y, ' ')
-			hex.SetCell(x+2, y, ' ')
+			SetCell(x-1, y, ' ', hex)
+			SetCell(x+2, y, ' ', hex)
 		} else if index >= hilite.pos && index < hilite.pos+hilite.length {
 			hex = hex.Sub("Highlight")
 		}
@@ -205,27 +205,27 @@ func (screen *DataScreen) drawScreen(style *Style) {
 
 		if cursor.mode == StringMode || index < cursor.pos || index >= cursor.pos+cursor_length {
 			if b == 0x20 {
-				code.SetCell(x, y+1, '•')
+				SetCell(x, y+1, '•', code)
 			} else if isASCII(b) {
-				txt.SetCell(x, y+1, rune(b))
+				SetCell(x, y+1, rune(b), txt)
 			} else if isCode(b) {
 				codes := map[byte]rune{
 					0x0A: 'n',
 					0x0D: 'r',
 					0x09: 't',
 				}
-				code.SetCell(x, y+1, '\\')
-				code.SetCell(x+1, y+1, codes[b])
+				SetCell(x, y+1, '\\', code)
+				SetCell(x+1, y+1, codes[b], code)
 			} else {
-				txt.SetCell(x, y+1, ' ')
+				SetCell(x, y+1, ' ', txt)
 			}
 		} else if cursor.mode == BitPatternMode {
 			bit := style.Sub("Bit")
 			for i := 0; i < 8; i++ {
 				if b&(1<<uint8(7-i)) > 0 {
-					bit.SetCell(x-1+(i%4), y+1+i/4, '●')
+					SetCell(x-1+(i%4), y+1+i/4, '●', bit)
 				} else {
-					bit.SetCell(x-1+(i%4), y+1+i/4, '○')
+					SetCell(x-1+(i%4), y+1+i/4, '○', bit)
 				}
 			}
 		} else if index == cursor.pos {
@@ -243,7 +243,7 @@ func (screen *DataScreen) drawScreen(style *Style) {
 				if y_copy > last_y {
 					break
 				}
-				intstyle.SetCell(x_copy, y_copy, runeValue)
+				SetCell(x_copy, y_copy, runeValue, intstyle)
 				x_copy++
 				if x_copy > last_x {
 					x_copy = x_pad
@@ -252,7 +252,7 @@ func (screen *DataScreen) drawScreen(style *Style) {
 			}
 		}
 		str := fmt.Sprintf("%02x", b)
-		x += hex.StringOut(str, x, y)
+		x += StringOut(str, x, y, hex)
 		x++
 	}
 
@@ -265,6 +265,6 @@ func (screen *DataScreen) drawScreen(style *Style) {
 			y = height - widget_height - 1
 		}
 		termbox.SetCursor(x+2+screen.field_editor.cursor_pos, y)
-		style.Sub("Edit").StringOut(fmt.Sprintf(" %-8s ", screen.field_editor.value), x+1, y)
+		StringOut(fmt.Sprintf(" %-8s ", screen.field_editor.value), x+1, y, style.Sub("Edit"))
 	}
 }

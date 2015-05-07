@@ -16,8 +16,8 @@ type AboutScreen int
 func drawCommandsAtPoint(commands []Command, x int, y int, style *Style) {
 	x_pos, y_pos := x, y
 	for index, cmd := range commands {
-		style.StringOut(fmt.Sprintf("%6s", cmd.key), x_pos, y_pos)
-		style.StringOut(cmd.description, x_pos+8, y_pos)
+		StringOut(fmt.Sprintf("%6s", cmd.key), x_pos, y_pos, style)
+		StringOut(cmd.description, x_pos+8, y_pos, style)
 		y_pos++
 		if index > 2 && index%2 == 1 {
 			y_pos++
@@ -71,7 +71,7 @@ func (screen *AboutScreen) drawScreen(style *Style) {
 				if runeValue != '#' {
 					displayRune = runeValue
 				}
-				s.SetCell(x_pos, y_pos, displayRune)
+				SetCell(x_pos, y_pos, displayRune, s)
 			}
 			x_pos++
 		}

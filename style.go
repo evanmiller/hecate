@@ -19,7 +19,7 @@ func (s *Style) Bg() termbox.Attribute {
 		}
 		s = s.parent
 	}
-	return 0
+	return termbox.ColorDefault
 }
 
 func (s *Style) Fg() termbox.Attribute {
@@ -29,7 +29,7 @@ func (s *Style) Fg() termbox.Attribute {
 		}
 		s = s.parent
 	}
-	return 0
+	return termbox.ColorDefault
 }
 
 func (s *Style) Sub(name ...string) *Style {
@@ -40,20 +40,6 @@ func (s *Style) Sub(name ...string) *Style {
 		}
 	}
 	return s
-}
-
-func (s *Style) SetCell(x, y int, ch rune) {
-	termbox.SetCell(x, y, ch, s.Fg(), s.Bg())
-}
-
-func (s *Style) StringOut(str string, x, y int) int {
-	x_pos := x
-	fg, bg := s.Fg(), s.Bg()
-	for _, runeValue := range str {
-		termbox.SetCell(x_pos, y, runeValue, fg, bg)
-		x_pos++
-	}
-	return x_pos - x
 }
 
 func (s *Style) UnmarshalJSON(data []byte) error {
