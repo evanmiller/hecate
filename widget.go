@@ -6,7 +6,7 @@ import (
 
 type Widget interface {
 	layoutUnderPressure(pressure int) (int, int)
-	drawAtPoint(cursor Cursor, x int, y int, pressure int, style Style) (int, int)
+	drawAtPoint(cursor Cursor, x int, y int, pressure int, style *Style) (int, int)
 }
 
 type WidgetSlice []Widget
@@ -70,7 +70,7 @@ func heightOfWidgets() int {
 	return max_widget_height
 }
 
-func drawWidgets(cursor Cursor, style Style) (int, int) {
+func drawWidgets(cursor Cursor, style *Style) (int, int) {
 	widgets := listOfWidgets()
 
 	width, height := termbox.Size()

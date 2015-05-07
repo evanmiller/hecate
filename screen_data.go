@@ -157,7 +157,8 @@ func (screen *DataScreen) performLayout() {
 	screen.view_port = new_view_port
 }
 
-func (screen *DataScreen) drawScreen(style Style) {
+func (screen *DataScreen) drawScreen(style *Style) {
+	style = style.Sub("Data")
 	x, y := 2, 1
 	x_pad := 2
 	line_height := 3
@@ -177,11 +178,10 @@ func (screen *DataScreen) drawScreen(style Style) {
 	end := start + view_port.number_of_rows*view_port.bytes_per_row
 	for index := start; index < end && index < len(screen.bytes); index++ {
 		b := screen.bytes[index]
-		hex_fg := style.default_fg
-		hex_bg := style.default_bg
-		code_fg := style.space_rune_fg
-		rune_fg := style.rune_fg
-		rune_bg := style.default_bg
+		hex := style.Sub("Hex")
+		txt := style.Sub("Rune")
+		code := txt.Sub("Code")
+
 		cursor_length := cursor.length()
 		if index%view_port.bytes_per_row == 0 {
 			x = x_pad
@@ -191,38 +191,41 @@ func (screen *DataScreen) drawScreen(style Style) {
 			break
 		}
 		if index >= cursor.pos && index < cursor.pos+cursor_length {
-			hex_bg = cursor.color(style)
-			termbox.SetCell(x-1, y, ' ', hex_fg, hex_bg)
-			termbox.SetCell(x+2, y, ' ', hex_fg, hex_bg)
+			hex = cursor.style(style)
+			SetCell(x-1, y, ' ', hex)
+			SetCell(x+2, y, ' ', hex)
 		} else if index >= hilite.pos && index < hilite.pos+hilite.length {
-			hex_fg = style.hilite_hex_fg
+			hex = hex.Sub("Highlight")
 		}
+
 		if index >= hilite.pos && index < hilite.pos+hilite.length {
-			rune_fg = style.hilite_rune_fg
-			code_fg = style.rune_fg
+			txt = txt.Sub("Highlight")
+			code = code.Sub("Highlight")
 		}
+
 		if cursor.mode == StringMode || index < cursor.pos || index >= cursor.pos+cursor_length {
 			if b == 0x20 {
-				termbox.SetCell(x, y+1, '•', style.space_rune_fg, rune_bg)
+				SetCell(x, y+1, '•', code)
 			} else if isASCII(b) {
-				termbox.SetCell(x, y+1, rune(b), rune_fg, rune_bg)
+				SetCell(x, y+1, rune(b), txt)
 			} else if isCode(b) {
 				codes := map[byte]rune{
 					0x0A: 'n',
 					0x0D: 'r',
 					0x09: 't',
 				}
-				termbox.SetCell(x, y+1, '\\', code_fg, rune_bg)
-				termbox.SetCell(x+1, y+1, codes[b], code_fg, rune_bg)
+				SetCell(x, y+1, '\\', code)
+				SetCell(x+1, y+1, codes[b], code)
 			} else {
-				termbox.SetCell(x, y+1, ' ', 0, rune_bg)
+				SetCell(x, y+1, ' ', txt)
 			}
 		} else if cursor.mode == BitPatternMode {
+			bit := style.Sub("Bit")
 			for i := 0; i < 8; i++ {
 				if b&(1<<uint8(7-i)) > 0 {
-					termbox.SetCell(x-1+(i%4), y+1+i/4, '●', style.bit_fg, rune_bg)
+					SetCell(x-1+(i%4), y+1+i/4, '●', bit)
 				} else {
-					termbox.SetCell(x-1+(i%4), y+1+i/4, '○', style.bit_fg, rune_bg)
+					SetCell(x-1+(i%4), y+1+i/4, '○', bit)
 				}
 			}
 		} else if index == cursor.pos {
@@ -235,11 +238,12 @@ func (screen *DataScreen) drawScreen(style Style) {
 				x_copy = (x_copy % (width - x_pad)) + x_pad
 				y_copy += line_height
 			}
+			intstyle := style.Sub("Int")
 			for _, runeValue := range str {
 				if y_copy > last_y {
 					break
 				}
-				termbox.SetCell(x_copy, y_copy, runeValue, style.int_fg, rune_bg)
+				SetCell(x_copy, y_copy, runeValue, intstyle)
 				x_copy++
 				if x_copy > last_x {
 					x_copy = x_pad
@@ -248,7 +252,7 @@ func (screen *DataScreen) drawScreen(style Style) {
 			}
 		}
 		str := fmt.Sprintf("%02x", b)
-		x += drawStringAtPoint(str, x, y, hex_fg, hex_bg)
+		x += StringOut(str, x, y, hex)
 		x++
 	}
 
@@ -261,7 +265,6 @@ func (screen *DataScreen) drawScreen(style Style) {
 			y = height - widget_height - 1
 		}
 		termbox.SetCursor(x+2+screen.field_editor.cursor_pos, y)
-		drawStringAtPoint(fmt.Sprintf(" %-8s ", screen.field_editor.value), x+1, y,
-			style.field_editor_fg, style.field_editor_bg)
+		StringOut(fmt.Sprintf(" %-8s ", screen.field_editor.value), x+1, y, style.Sub("Edit"))
 	}
 }

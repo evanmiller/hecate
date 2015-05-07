@@ -17,18 +17,16 @@ func (widget NavigationWidget) layoutUnderPressure(pressure int) (int, int) {
 	return runeCount, 2
 }
 
-func (widget NavigationWidget) drawAtPoint(cursor Cursor, x int, y int, pressure int, style Style) (int, int) {
-	fg := style.default_fg
-	bg := style.default_bg
+func (widget NavigationWidget) drawAtPoint(cursor Cursor, x int, y int, pressure int, style *Style) (int, int) {
 	x_pos := x
 	if pressure == 0 {
-		x_pos += drawStringAtPoint("Navigate: ←h ↓j ↑k →l", x_pos, y, fg, bg)
+		x_pos += StringOut("Navigate: ←h ↓j ↑k →l", x_pos, y, style)
 		x_pos = x + 10
-		x_pos += drawStringAtPoint("←←←←b w→→→→", x_pos, y+1, fg, bg)
+		x_pos += StringOut("←←←←b w→→→→", x_pos, y+1, style)
 	} else if pressure == 1 {
-		x_pos += drawStringAtPoint("Navigate: ←h ↓j", x_pos, y, fg, bg)
+		x_pos += StringOut("Navigate: ←h ↓j", x_pos, y, style)
 		x_pos = x + 10
-		x_pos += drawStringAtPoint("↑k →l", x_pos, y+1, fg, bg)
+		x_pos += StringOut("↑k →l", x_pos, y+1, style)
 	}
 	return x_pos - x, 2
 }

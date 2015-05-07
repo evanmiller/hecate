@@ -13,11 +13,11 @@ type Command struct {
 
 type AboutScreen int
 
-func drawCommandsAtPoint(commands []Command, x int, y int, style Style) {
+func drawCommandsAtPoint(commands []Command, x int, y int, style *Style) {
 	x_pos, y_pos := x, y
 	for index, cmd := range commands {
-		drawStringAtPoint(fmt.Sprintf("%6s", cmd.key), x_pos, y_pos, style.default_fg, style.default_bg)
-		drawStringAtPoint(cmd.description, x_pos+8, y_pos, style.default_fg, style.default_bg)
+		StringOut(fmt.Sprintf("%6s", cmd.key), x_pos, y_pos, style)
+		StringOut(cmd.description, x_pos+8, y_pos, style)
 		y_pos++
 		if index > 2 && index%2 == 1 {
 			y_pos++
@@ -32,9 +32,10 @@ func (screen *AboutScreen) handleKeyEvent(event termbox.Event) int {
 func (screen *AboutScreen) performLayout() {
 }
 
-func (screen *AboutScreen) drawScreen(style Style) {
-	default_fg := style.default_fg
-	default_bg := style.default_bg
+func (screen *AboutScreen) drawScreen(style *Style) {
+	style = style.Sub("About")
+	logo := style.Sub("Logo")
+
 	width, height := termbox.Size()
 	template := [...]string{
 		"                              ############################",
@@ -62,14 +63,15 @@ func (screen *AboutScreen) drawScreen(style Style) {
 	for _, line := range template {
 		x_pos = start_x
 		for _, runeValue := range line {
-			bg := default_bg
+			s := style
+
 			displayRune := ' '
 			if runeValue != ' ' {
-				bg = style.about_logo_bg
+				s = logo
 				if runeValue != '#' {
 					displayRune = runeValue
 				}
-				termbox.SetCell(x_pos, y_pos, displayRune, default_fg, bg)
+				SetCell(x_pos, y_pos, displayRune, s)
 			}
 			x_pos++
 		}

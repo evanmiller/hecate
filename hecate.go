@@ -11,7 +11,7 @@ import (
 
 const PROGRAM_NAME = "hecate"
 
-func mainLoop(bytes []byte, style Style) {
+func mainLoop(bytes []byte, style *Style) {
 	screens := defaultScreensForData(bytes)
 	display_screen := screens[DATA_SCREEN_INDEX]
 	layoutAndDrawScreen(display_screen, style)

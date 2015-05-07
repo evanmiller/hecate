@@ -1,9 +1,8 @@
 package main
 
 import (
-	"unicode/utf8"
-
 	"github.com/nsf/termbox-go"
+	"unicode/utf8"
 )
 
 func isASCII(val byte) bool {
@@ -16,15 +15,6 @@ func isCode(val byte) bool {
 
 func isPrintable(val byte) bool {
 	return isASCII(val) || isCode(val)
-}
-
-func drawStringAtPoint(str string, x int, y int, fg termbox.Attribute, bg termbox.Attribute) int {
-	x_pos := x
-	for _, runeValue := range str {
-		termbox.SetCell(x_pos, y, runeValue, fg, bg)
-		x_pos++
-	}
-	return x_pos - x
 }
 
 func removeRuneAtIndex(value []byte, index int) []byte {
@@ -63,4 +53,18 @@ func insertRuneAtIndex(value []byte, index int, newRuneValue rune) []byte {
 		pos += utf8.EncodeRune(new_string[pos:], runeValue)
 	}
 	return new_string[0:pos]
+}
+
+func SetCell(x, y int, ch rune, s *Style) {
+	termbox.SetCell(x, y, ch, s.Fg(), s.Bg())
+}
+
+func StringOut(str string, x, y int, s *Style) int {
+	x_pos := x
+	fg, bg := s.Fg(), s.Bg()
+	for _, runeValue := range str {
+		termbox.SetCell(x_pos, y, runeValue, fg, bg)
+		x_pos++
+	}
+	return x_pos - x
 }

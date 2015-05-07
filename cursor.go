@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"math"
-
-	"github.com/nsf/termbox-go"
 )
 
 type CursorMode int
@@ -87,17 +85,18 @@ func (cursor Cursor) minimumLength() int {
 	return 1
 }
 
-func (cursor Cursor) color(style Style) termbox.Attribute {
+func (cursor Cursor) style(style *Style) *Style {
+	style = style.Sub("Cursor")
 	if cursor.mode == IntegerMode {
-		return style.int_cursor_hex_bg
+		return style.Sub("Int")
 	}
 	if cursor.mode == FloatingPointMode {
-		return style.fp_cursor_hex_bg
+		return style.Sub("Float")
 	}
 	if cursor.mode == BitPatternMode {
-		return style.bit_cursor_hex_bg
+		return style.Sub("Bit")
 	}
-	return style.text_cursor_hex_bg
+	return style.Sub("Text")
 }
 
 func (cursor Cursor) highlightRange(data []byte) ByteRange {
