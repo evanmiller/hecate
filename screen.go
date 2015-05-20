@@ -26,7 +26,7 @@ func defaultScreensForData(bytes []byte) []Screen {
 
 	hilite := cursor.highlightRange(bytes)
 
-	data_screen := DataScreen{bytes, cursor, hilite, view_port, cursor.mode, nil}
+	data_screen := DataScreen{bytes: bytes, cursor: cursor, hilite: hilite, view_port: view_port, prev_mode: cursor.mode}
 	about_screen := AboutScreen(0)
 	palette_screen := PaletteScreen(0)
 	screens := [...]Screen{

@@ -2,7 +2,7 @@ package main
 
 type CursorWidget int
 
-func (widget CursorWidget) layoutUnderPressure(pressure int) (int, int) {
+func (widget CursorWidget) layoutUnderPressure(pressure int) Size {
 	runeCount := 0
 	height := 2
 	if pressure < 5 || pressure == 6 {
@@ -27,14 +27,14 @@ func (widget CursorWidget) layoutUnderPressure(pressure int) (int, int) {
 		}
 		height = 6
 	}
-	return runeCount, height
+	return Size{runeCount, height}
 }
 
-func (widget CursorWidget) drawAtPoint(cursor Cursor, x int, y int, pressure int, style Style) (int, int) {
+func (widget CursorWidget) drawAtPoint(cursor Cursor, point Point, pressure int, style Style, mode EditMode) Size {
 	fg := style.default_fg
 	bg := style.default_bg
-	x_pos := x
-	y_pos := y
+	x_pos := point.x
+	y_pos := point.y
 	if pressure < 5 || pressure == 6 {
 		x_pos += drawStringAtPoint("Cursor: ", x_pos, y_pos, fg, bg)
 	}
@@ -48,7 +48,7 @@ func (widget CursorWidget) drawAtPoint(cursor Cursor, x int, y int, pressure int
 	} else if pressure < 8 {
 		x_pos += 4
 	} else {
-		x_pos = x
+		x_pos = point.x
 		y_pos++
 	}
 	if cursor.mode == BitPatternMode {
@@ -59,10 +59,10 @@ func (widget CursorWidget) drawAtPoint(cursor Cursor, x int, y int, pressure int
 	if pressure < 6 {
 		x_pos++
 	} else if pressure < 7 {
-		x_pos = x + 8
+		x_pos = point.x + 8
 		y_pos++
 	} else {
-		x_pos = x
+		x_pos = point.x
 		y_pos++
 	}
 	if cursor.mode == IntegerMode {
@@ -73,7 +73,7 @@ func (widget CursorWidget) drawAtPoint(cursor Cursor, x int, y int, pressure int
 	if pressure < 8 {
 		x_pos++
 	} else {
-		x_pos = x
+		x_pos = point.x
 		y_pos++
 	}
 	if cursor.mode == FloatingPointMode {
@@ -81,7 +81,7 @@ func (widget CursorWidget) drawAtPoint(cursor Cursor, x int, y int, pressure int
 	} else {
 		x_pos += drawStringAtPoint("(f)loat", x_pos, y_pos, fg, bg)
 	}
-	x_pos = x
+	x_pos = point.x
 	y_pos++
 	if pressure < 5 || pressure == 6 {
 		if cursor.mode == IntegerMode || cursor.mode == FloatingPointMode {
@@ -91,7 +91,7 @@ func (widget CursorWidget) drawAtPoint(cursor Cursor, x int, y int, pressure int
 		}
 	}
 	if pressure >= 8 {
-		x_pos = x
+		x_pos = point.x
 	}
 	if cursor.mode == IntegerMode || cursor.mode == FloatingPointMode {
 		if cursor.big_endian {
@@ -105,7 +105,7 @@ func (widget CursorWidget) drawAtPoint(cursor Cursor, x int, y int, pressure int
 		x_pos++
 	}
 	if pressure >= 8 {
-		x_pos = x
+		x_pos = point.x
 		y_pos++
 	} else if pressure >= 6 {
 		x_pos++
@@ -137,5 +137,5 @@ func (widget CursorWidget) drawAtPoint(cursor Cursor, x int, y int, pressure int
 			x_pos += drawStringAtPoint("Size: ←H →L", x_pos, y_pos, style.space_rune_fg, bg)
 		}
 	}
-	return x_pos - x, y_pos - y + 1
+	return Size{x_pos - point.x, y_pos - point.y + 1}
 }

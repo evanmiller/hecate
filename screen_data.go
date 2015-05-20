@@ -2,8 +2,17 @@ package main
 
 import (
 	"fmt"
+	"math"
+	"strings"
 
 	"github.com/nsf/termbox-go"
+)
+
+type EditMode int
+
+const (
+	EditingOffset EditMode = iota + 1
+	EditingSearch
 )
 
 type ViewPort struct {
@@ -18,7 +27,107 @@ type DataScreen struct {
 	hilite       ByteRange
 	view_port    ViewPort
 	prev_mode    CursorMode
+	prev_search  string
+	edit_mode    EditMode
 	field_editor *FieldEditor
+}
+
+func scanOffset(value string, file_pos int) int {
+	scanned_file_pos := 0
+	if n, _ := fmt.Sscanf(value, "+%v", &scanned_file_pos); n > 0 {
+		return file_pos + scanned_file_pos
+	}
+	if n, _ := fmt.Sscanf(value, "%v", &scanned_file_pos); n > 0 {
+		if scanned_file_pos < 0 {
+			if scanned_file_pos+file_pos < 0 {
+				return 0
+			}
+			return scanned_file_pos + file_pos
+		}
+		return scanned_file_pos
+	}
+	return -1
+}
+
+func scanSearchString(value string, bytes []byte, cursor Cursor) Cursor {
+	representations := make(map[string]*Cursor)
+
+	var scanned_fp float64
+	var rest_of_value string
+	if n, _ := fmt.Sscanf(value, "%g%s", &scanned_fp, &rest_of_value); n > 0 && len(rest_of_value) == 0 {
+		fp32_string := binaryStringForInteger32(math.Float32bits(float32(scanned_fp)), cursor.big_endian)
+		fp32_cursor := Cursor{mode: FloatingPointMode, fp_length: 4, big_endian: cursor.big_endian}
+		representations[fp32_string] = &fp32_cursor
+
+		fp64_string := binaryStringForInteger64(math.Float64bits(scanned_fp), cursor.big_endian)
+		fp64_cursor := Cursor{mode: FloatingPointMode, fp_length: 8, big_endian: cursor.big_endian}
+		representations[fp64_string] = &fp64_cursor
+
+		var scanned_int int64
+		if n, _ := fmt.Sscanf(value, "%d%s", &scanned_int, &rest_of_value); n > 0 && scanned_fp == float64(scanned_int) && len(rest_of_value) == 0 {
+			if scanned_int >= math.MinInt8 && scanned_int <= math.MaxUint8 {
+				int8_string := binaryStringForInteger8(uint8(scanned_int))
+				int8_cursor := Cursor{mode: IntegerMode, int_length: 1, unsigned: (scanned_int > math.MaxInt8)}
+				representations[int8_string] = &int8_cursor
+			}
+			if scanned_int >= math.MinInt16 && scanned_int <= math.MaxUint16 {
+				int16_string := binaryStringForInteger16(uint16(scanned_int), cursor.big_endian)
+				int16_cursor := Cursor{mode: IntegerMode, int_length: 2, unsigned: (scanned_int > math.MaxInt16),
+					big_endian: cursor.big_endian}
+				representations[int16_string] = &int16_cursor
+			}
+			if scanned_int >= math.MinInt32 && scanned_int <= math.MaxUint32 {
+				int32_string := binaryStringForInteger32(uint32(scanned_int), cursor.big_endian)
+				int32_cursor := Cursor{mode: IntegerMode, int_length: 4, unsigned: (scanned_int > math.MaxInt32),
+					big_endian: cursor.big_endian}
+				representations[int32_string] = &int32_cursor
+			}
+			int64_string := binaryStringForInteger64(uint64(scanned_int), cursor.big_endian)
+			int64_cursor := Cursor{mode: IntegerMode, int_length: 8, unsigned: (scanned_int > math.MaxInt64),
+				big_endian: cursor.big_endian}
+			representations[int64_string] = &int64_cursor
+		}
+	}
+	text_cursor := Cursor{mode: StringMode}
+	representations[value] = &text_cursor
+
+	first_match := -1
+	first_length := 1
+	first_cursor := cursor
+
+	for k, v := range representations {
+		start_pos := cursor.pos + 1
+		found_pos := -1
+		if start_pos < len(bytes) {
+			found_pos = strings.Index(string(bytes[start_pos:]), k)
+			if found_pos != -1 {
+				found_pos += start_pos
+			}
+		}
+		if found_pos == -1 {
+			found_pos = strings.Index(string(bytes[0:cursor.pos]), k)
+		}
+		if found_pos != -1 {
+			ranked_pos := found_pos - cursor.pos
+			if ranked_pos < 0 {
+				ranked_pos += len(bytes)
+			}
+			if first_match == -1 || ranked_pos < first_match ||
+				(ranked_pos == first_match && v.length() > first_length) {
+				first_match = ranked_pos
+				first_length = v.length()
+				first_cursor.pos = found_pos
+				if v.mode == FloatingPointMode {
+					first_cursor.fp_length = v.fp_length
+				} else if v.mode == IntegerMode {
+					first_cursor.int_length = v.int_length
+				}
+				first_cursor.mode = v.mode
+				first_cursor.unsigned = v.unsigned
+			}
+		}
+	}
+	return first_cursor
 }
 
 func (screen *DataScreen) handleKeyEvent(event termbox.Event) int {
@@ -33,12 +142,33 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event) int {
 	} else if event.Ch == '?' { // about
 		return ABOUT_SCREEN_INDEX
 	} else if screen.field_editor != nil {
-		if new_pos := screen.field_editor.handleKeyEvent(event, screen.cursor.pos); new_pos >= 0 {
-			screen.cursor.pos = new_pos
+		new_pos := -1
+		string_value, is_done := screen.field_editor.handleKeyEvent(event)
+		if is_done {
+			if len(string_value) > 0 {
+				if screen.edit_mode == EditingSearch {
+					screen.cursor = scanSearchString(string_value, screen.bytes, screen.cursor)
+					screen.prev_search = string_value
+				} else {
+					new_pos = scanOffset(string_value, screen.cursor.pos)
+				}
+			}
+			screen.edit_mode = 0
 			screen.field_editor = nil
+		}
+		if new_pos >= 0 {
+			screen.cursor.pos = new_pos
+		}
+	} else if event.Ch == 'n' {
+		if len(screen.prev_search) > 0 {
+			screen.cursor = scanSearchString(screen.prev_search, screen.bytes, screen.cursor)
 		}
 	} else if event.Ch == ':' {
 		screen.field_editor = new(FieldEditor)
+		screen.edit_mode = EditingOffset
+	} else if event.Ch == '/' {
+		screen.field_editor = new(FieldEditor)
+		screen.edit_mode = EditingSearch
 	} else if event.Ch == 'x' {
 		screen.cursor.hex_mode = !screen.cursor.hex_mode
 	} else if event.Ch == 'j' || event.Key == termbox.KeyArrowDown { // down
@@ -162,7 +292,7 @@ func (screen *DataScreen) drawScreen(style Style) {
 	x_pad := 2
 	line_height := 3
 	width, height := termbox.Size()
-	widget_width, widget_height := drawWidgets(screen.cursor, style)
+	widget_size := drawWidgets(screen.cursor, style, screen.edit_mode)
 
 	cursor := screen.cursor
 	hilite := screen.hilite
@@ -253,12 +383,12 @@ func (screen *DataScreen) drawScreen(style Style) {
 	}
 
 	if screen.field_editor != nil {
-		if widget_width > 46 {
-			x = (width-widget_width)/2 + widget_width - 9
+		if widget_size.width > 46 {
+			x = (width-widget_size.width)/2 + widget_size.width - 9
 			y = height - 2
 		} else {
 			x = (width - 10) / 2
-			y = height - widget_height - 1
+			y = height - widget_size.height - 1
 		}
 		termbox.SetCursor(x+2+screen.field_editor.cursor_pos, y)
 		drawStringAtPoint(fmt.Sprintf(" %-8s ", screen.field_editor.value), x+1, y,

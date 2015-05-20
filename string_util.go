@@ -64,3 +64,61 @@ func insertRuneAtIndex(value []byte, index int, newRuneValue rune) []byte {
 	}
 	return new_string[0:pos]
 }
+
+func binaryStringForInteger8(value uint8) string {
+	new_string := make([]byte, 1)
+	new_string[0] = value
+	return string(new_string[0:1])
+}
+
+func binaryStringForInteger16(value uint16, big_endian bool) string {
+	new_string := make([]byte, 2)
+	if big_endian {
+		new_string[0] = uint8(value >> 8)
+		new_string[1] = uint8(value & 0xFF)
+	} else {
+		new_string[0] = uint8(value & 0xFF)
+		new_string[1] = uint8(value >> 8)
+	}
+	return string(new_string[0:2])
+}
+
+func binaryStringForInteger32(value uint32, big_endian bool) string {
+	new_string := make([]byte, 4)
+	if big_endian {
+		new_string[0] = uint8(value >> 24)
+		new_string[1] = uint8((value >> 16) & 0xFF)
+		new_string[2] = uint8((value >> 8) & 0xFF)
+		new_string[3] = uint8(value & 0xFF)
+	} else {
+		new_string[0] = uint8(value & 0xFF)
+		new_string[1] = uint8((value >> 8) & 0xFF)
+		new_string[2] = uint8((value >> 16) & 0xFF)
+		new_string[3] = uint8(value >> 24)
+	}
+	return string(new_string[0:4])
+}
+
+func binaryStringForInteger64(value uint64, big_endian bool) string {
+	new_string := make([]byte, 8)
+	if big_endian {
+		new_string[0] = uint8((value >> 56) & 0xFF)
+		new_string[1] = uint8((value >> 48) & 0xFF)
+		new_string[2] = uint8((value >> 40) & 0xFF)
+		new_string[3] = uint8((value >> 32) & 0xFF)
+		new_string[4] = uint8((value >> 24) & 0xFF)
+		new_string[5] = uint8((value >> 16) & 0xFF)
+		new_string[6] = uint8((value >> 8) & 0xFF)
+		new_string[7] = uint8(value & 0xFF)
+	} else {
+		new_string[0] = uint8(value & 0xFF)
+		new_string[1] = uint8((value >> 8) & 0xFF)
+		new_string[2] = uint8((value >> 16) & 0xFF)
+		new_string[3] = uint8((value >> 24) & 0xFF)
+		new_string[4] = uint8((value >> 32) & 0xFF)
+		new_string[5] = uint8((value >> 40) & 0xFF)
+		new_string[6] = uint8((value >> 48) & 0xFF)
+		new_string[7] = uint8((value >> 56) & 0xFF)
+	}
+	return string(new_string[0:8])
+}

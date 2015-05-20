@@ -36,7 +36,7 @@ type Cursor struct {
 	hex_mode   bool
 }
 
-func (cursor Cursor) c_type() string {
+func (cursor *Cursor) c_type() string {
 	if cursor.mode == IntegerMode {
 		if cursor.unsigned {
 			return fmt.Sprintf("uint%d_t", cursor.int_length*8)
@@ -57,7 +57,7 @@ func (cursor Cursor) c_type() string {
 	return ""
 }
 
-func (cursor Cursor) length() int {
+func (cursor *Cursor) length() int {
 	if cursor.mode == IntegerMode {
 		return cursor.int_length
 	}
@@ -67,7 +67,7 @@ func (cursor Cursor) length() int {
 	return 1
 }
 
-func (cursor Cursor) maximumLength() int {
+func (cursor *Cursor) maximumLength() int {
 	if cursor.mode == IntegerMode {
 		return MAX_INTEGER_WIDTH
 	}
@@ -77,7 +77,7 @@ func (cursor Cursor) maximumLength() int {
 	return 1
 }
 
-func (cursor Cursor) minimumLength() int {
+func (cursor *Cursor) minimumLength() int {
 	if cursor.mode == IntegerMode {
 		return MIN_INTEGER_WIDTH
 	}
@@ -87,7 +87,7 @@ func (cursor Cursor) minimumLength() int {
 	return 1
 }
 
-func (cursor Cursor) color(style Style) termbox.Attribute {
+func (cursor *Cursor) color(style Style) termbox.Attribute {
 	if cursor.mode == IntegerMode {
 		return style.int_cursor_hex_bg
 	}
@@ -100,7 +100,7 @@ func (cursor Cursor) color(style Style) termbox.Attribute {
 	return style.text_cursor_hex_bg
 }
 
-func (cursor Cursor) highlightRange(data []byte) ByteRange {
+func (cursor *Cursor) highlightRange(data []byte) ByteRange {
 	var hilite ByteRange
 	if cursor.mode != StringMode || !isPrintable(data[cursor.pos]) {
 		return hilite
@@ -113,7 +113,7 @@ func (cursor Cursor) highlightRange(data []byte) ByteRange {
 	return hilite
 }
 
-func (cursor Cursor) formatBytesAsNumber(data []byte) string {
+func (cursor *Cursor) formatBytesAsNumber(data []byte) string {
 	str := ""
 	var integer uint64
 	if cursor.big_endian {

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"unicode"
 	"unicode/utf8"
 
@@ -13,29 +12,13 @@ type FieldEditor struct {
 	cursor_pos int
 }
 
-func (field_editor *FieldEditor) handleKeyEvent(event termbox.Event, file_pos int) int {
-	new_file_pos := -1
+func (field_editor *FieldEditor) handleKeyEvent(event termbox.Event) (string, bool) {
+	is_done := false
 	if event.Key == termbox.KeyEnter {
-		if len(field_editor.value) > 0 {
-			scanned_file_pos := 0
-			if n, _ := fmt.Sscanf(string(field_editor.value), "+%v", &scanned_file_pos); n > 0 {
-				new_file_pos = file_pos + scanned_file_pos
-			} else if n, _ := fmt.Sscanf(string(field_editor.value), "%v", &scanned_file_pos); n > 0 {
-				if scanned_file_pos < 0 {
-					if scanned_file_pos+file_pos < 0 {
-						new_file_pos = 0
-					} else {
-						new_file_pos = scanned_file_pos + file_pos
-					}
-				} else {
-					new_file_pos = scanned_file_pos
-				}
-			}
-		} else {
-			new_file_pos = file_pos
-		}
+		is_done = true
 	} else if event.Key == termbox.KeyEsc {
-		new_file_pos = file_pos
+		is_done = true
+		field_editor.value = nil
 	} else if event.Key == termbox.KeyArrowLeft {
 		if field_editor.cursor_pos > 0 {
 			field_editor.cursor_pos--
@@ -56,6 +39,9 @@ func (field_editor *FieldEditor) handleKeyEvent(event termbox.Event, file_pos in
 	} else if unicode.IsPrint(event.Ch) {
 		field_editor.value = insertRuneAtIndex(field_editor.value, field_editor.cursor_pos, event.Ch)
 		field_editor.cursor_pos++
+	} else if event.Key == termbox.KeySpace {
+		field_editor.value = insertRuneAtIndex(field_editor.value, field_editor.cursor_pos, ' ')
+		field_editor.cursor_pos++
 	}
-	return new_file_pos
+	return string(field_editor.value), is_done
 }

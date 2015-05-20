@@ -33,6 +33,7 @@ Full list of commands:
 <tr><td>ctrl-f</td><td>page down</td> <td>:</td><td>jump to offset</td></tr>
 <tr><td>ctrl-b</td><td>page up</td> <td>x</td><td>toggle hex offset</td></tr>
 
-<tr><td>ctrl-e</td><td>scroll down</td> <td>?</td><td>help screen</td></tr>
-<tr><td>ctrl-y</td><td>scroll up</td> <td>q</td><td>quit program</td></tr>
+<tr><td>ctrl-e</td><td>scroll down</td> <td>/</td><td>search file</td></tr>
+<tr><td>ctrl-y</td><td>scroll up</td> <td>?</td><td>help screen</td></tr> 
+<tr><td></td><td></td> <td>q</td><td>quit program</td></tr>
 </table>

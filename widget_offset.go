@@ -6,23 +6,25 @@ import (
 
 type OffsetWidget int
 
-func (widget OffsetWidget) layoutUnderPressure(pressure int) (int, int) {
+func (widget OffsetWidget) layoutUnderPressure(pressure int) Size {
 	if pressure > 3 {
-		return 0, 0
+		return Size{0, 0}
 	}
-	return 18, 2
+	return Size{18, 2}
 }
 
-func (widget OffsetWidget) drawAtPoint(cursor Cursor, x int, y int, pressure int, style Style) (int, int) {
+func (widget OffsetWidget) drawAtPoint(cursor Cursor, point Point, pressure int, style Style, mode EditMode) Size {
 	if pressure > 3 {
-		return 0, 0
+		return Size{0, 0}
 	}
 	fg := style.default_fg
 	bg := style.default_bg
-	if cursor.hex_mode {
-		drawStringAtPoint(fmt.Sprintf("Offset(:)  0x%x", cursor.pos), x, y, fg, bg)
+	if mode == EditingSearch {
+		drawStringAtPoint("Search(/)", point.x, point.y, fg, bg)
+	} else if cursor.hex_mode {
+		drawStringAtPoint(fmt.Sprintf("Offset(:)  0x%x", cursor.pos), point.x, point.y, fg, bg)
 	} else {
-		drawStringAtPoint(fmt.Sprintf("Offset(:)  %d", cursor.pos), x, y, fg, bg)
+		drawStringAtPoint(fmt.Sprintf("Offset(:)  %d", cursor.pos), point.x, point.y, fg, bg)
 	}
-	return drawStringAtPoint(fmt.Sprintf("  Type :  %s", cursor.c_type()), x, y+1, fg, bg), 2
+	return Size{drawStringAtPoint(fmt.Sprintf("  Type :  %s", cursor.c_type()), point.x, point.y+1, fg, bg), 2}
 }

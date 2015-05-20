@@ -53,28 +53,6 @@ func (screen *AboutScreen) drawScreen(style Style) {
 		"#### #### ####### ######### #### #### #### ####### #     #",
 		"#### #### ########  #####   #### #### #### ########       ",
 	}
-
-	first_line := template[0]
-	start_x := (width - len(first_line)) / 2
-	start_y := (height - 2*len(template)) / 2
-	x_pos := start_x
-	y_pos := start_y
-	for _, line := range template {
-		x_pos = start_x
-		for _, runeValue := range line {
-			bg := default_bg
-			displayRune := ' '
-			if runeValue != ' ' {
-				bg = style.about_logo_bg
-				if runeValue != '#' {
-					displayRune = runeValue
-				}
-				termbox.SetCell(x_pos, y_pos, displayRune, default_fg, bg)
-			}
-			x_pos++
-		}
-		y_pos++
-	}
 	commands1 := [...]Command{
 		{"h", "left"},
 		{"j", "down"},
@@ -109,8 +87,32 @@ func (screen *AboutScreen) drawScreen(style Style) {
 		{":", "jump to offset"},
 		{"x", "toggle hex offset"},
 
+		{"/", "search file"},
 		{"?", "this screen"},
+
 		{"q", "quit program"},
+	}
+
+	first_line := template[0]
+	start_x := (width - len(first_line)) / 2
+	start_y := (height - len(template) - 2 - len(commands2)/2*3) / 2
+	x_pos := start_x
+	y_pos := start_y
+	for _, line := range template {
+		x_pos = start_x
+		for _, runeValue := range line {
+			bg := default_bg
+			displayRune := ' '
+			if runeValue != ' ' {
+				bg = style.about_logo_bg
+				if runeValue != '#' {
+					displayRune = runeValue
+				}
+				termbox.SetCell(x_pos, y_pos, displayRune, default_fg, bg)
+			}
+			x_pos++
+		}
+		y_pos++
 	}
 	x_pos = start_x + 3
 	y_pos++
