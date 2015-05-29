@@ -33,11 +33,16 @@ type DataScreen struct {
 }
 
 func scanOffset(value string, file_pos int) int {
+	var err error
+	expression := ""
 	scanned_file_pos := 0
-	if n, _ := fmt.Sscanf(value, "+%v", &scanned_file_pos); n > 0 {
-		return file_pos + scanned_file_pos
+	if n, _ := fmt.Sscanf(value, "+%s", &expression); n > 0 {
+		if scanned_file_pos, err = evaluateExpression(expression); err == nil {
+			return file_pos + scanned_file_pos
+		}
+		return -1
 	}
-	if n, _ := fmt.Sscanf(value, "%v", &scanned_file_pos); n > 0 {
+	if scanned_file_pos, err = evaluateExpression(value); err == nil {
 		if scanned_file_pos < 0 {
 			if scanned_file_pos+file_pos < 0 {
 				return 0
@@ -107,8 +112,12 @@ func scanSearchString(value string, bytes []byte, cursor Cursor) Cursor {
 		if found_pos == -1 {
 			found_pos = strings.Index(string(bytes[0:cursor.pos]), k)
 		}
-		if found_pos != -1 {
-			ranked_pos := found_pos - cursor.pos
+		v.pos = found_pos
+	}
+
+	for _, v := range representations {
+		if v.pos != -1 {
+			ranked_pos := v.pos - cursor.pos
 			if ranked_pos < 0 {
 				ranked_pos += len(bytes)
 			}
@@ -116,7 +125,7 @@ func scanSearchString(value string, bytes []byte, cursor Cursor) Cursor {
 				(ranked_pos == first_match && v.length() > first_length) {
 				first_match = ranked_pos
 				first_length = v.length()
-				first_cursor.pos = found_pos
+				first_cursor.pos = v.pos
 				if v.mode == FloatingPointMode {
 					first_cursor.fp_length = v.fp_length
 				} else if v.mode == IntegerMode {
