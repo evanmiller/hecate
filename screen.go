@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/nsf/termbox-go"
 )
 
@@ -19,10 +21,8 @@ const (
 
 func defaultScreensForData(bytes []byte) []Screen {
 	var view_port ViewPort
-	var cursor Cursor
-	cursor.int_length = 4
-	cursor.fp_length = 4
-	cursor.mode = StringMode
+	cursor := Cursor{int_length: 4, fp_length: 4, mode: StringMode,
+		epoch_unit: SecondsSinceEpoch, epoch_time: time.Unix(0, 0).UTC()}
 
 	hilite := cursor.highlightRange(bytes)
 

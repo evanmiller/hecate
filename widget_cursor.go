@@ -1,26 +1,33 @@
 package main
 
+import "fmt"
+
 type CursorWidget int
 
-func (widget CursorWidget) layoutUnderPressure(pressure int) Size {
+func (widget CursorWidget) sizeForLayout(layout Layout) Size {
 	runeCount := 0
 	height := 2
-	if pressure < 5 || pressure == 6 {
+	if layout.show_date {
+		height = 4
+	}
+	if layout.pressure < 5 || layout.pressure == 6 {
 		for _, _ = range "Cursor: " {
 			runeCount++
 		}
 	}
-	if pressure < 6 {
+	if layout.pressure < 6 {
 		for _, _ = range "(t)ext (p)attern (i)nteger (f)loat" {
 			runeCount++
 		}
-	} else if pressure < 8 {
+	} else if layout.pressure < 8 {
 		for _, _ = range "(t)ext    (p)attern" {
 			/*            (i)nteger (f)loat
 			              (e)ndian  (u)nsigned */
 			runeCount++
 		}
-		height = 3
+		if height < 3 {
+			height = 3
+		}
 	} else {
 		for _, _ = range "(u)nsigned" {
 			runeCount++
@@ -30,11 +37,14 @@ func (widget CursorWidget) layoutUnderPressure(pressure int) Size {
 	return Size{runeCount, height}
 }
 
-func (widget CursorWidget) drawAtPoint(cursor Cursor, point Point, pressure int, style Style, mode EditMode) Size {
+func (widget CursorWidget) drawAtPoint(cursor Cursor, data []byte, point Point, layout Layout, style Style, mode EditMode) Size {
 	fg := style.default_fg
 	bg := style.default_bg
 	x_pos := point.x
 	y_pos := point.y
+	max_x_pos := x_pos
+	pressure := layout.pressure
+
 	if pressure < 5 || pressure == 6 {
 		x_pos += drawStringAtPoint("Cursor: ", x_pos, y_pos, fg, bg)
 	}
@@ -137,5 +147,37 @@ func (widget CursorWidget) drawAtPoint(cursor Cursor, point Point, pressure int,
 			x_pos += drawStringAtPoint("Size: ←H →L", x_pos, y_pos, style.space_rune_fg, bg)
 		}
 	}
-	return Size{x_pos - point.x, y_pos - point.y + 1}
+	max_x_pos = x_pos
+	x_pos = point.x
+	if layout.show_date {
+		y_pos++
+		if pressure < 6 {
+			y_pos++
+		}
+		date_fg := style.space_rune_fg
+		if cursor.mode == IntegerMode || cursor.mode == FloatingPointMode {
+			date_fg = fg
+		}
+		if pressure < 5 || pressure == 6 {
+			x_pos += drawStringAtPoint("(D)ate: ", x_pos, y_pos, date_fg, bg)
+		}
+		x_pos += drawStringAtPoint(fmt.Sprintf("%10s", cursor.interpretBytesAsTime(data).Format("1/2/2006")), x_pos, y_pos, date_fg, bg)
+		x_pos++
+		x_pos += drawStringAtPoint(fmt.Sprintf("%8s", cursor.interpretBytesAsTime(data).Format("3:04 PM")), x_pos, y_pos, date_fg, bg)
+		if pressure < 6 {
+			x_pos += 2
+			if date_fg == fg && cursor.epoch_unit == SecondsSinceEpoch {
+				x_pos += drawStringAtPoint("(s)ecs", x_pos, y_pos, date_fg, style.selected_option_bg)
+			} else {
+				x_pos += drawStringAtPoint("(s)ecs", x_pos, y_pos, date_fg, bg)
+			}
+			x_pos++
+			if date_fg == fg && cursor.epoch_unit == DaysSinceEpoch {
+				x_pos += drawStringAtPoint("(d)ays", x_pos, y_pos, date_fg, style.selected_option_bg)
+			} else {
+				x_pos += drawStringAtPoint("(d)ays", x_pos, y_pos, date_fg, bg)
+			}
+		}
+	}
+	return Size{max_x_pos - point.x, y_pos - point.y + 1}
 }

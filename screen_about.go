@@ -65,6 +65,9 @@ func (screen *AboutScreen) drawScreen(style Style) {
 		{"g", "first byte"},
 		{"G", "last byte"},
 
+		{"/", "search file"},
+		{"n", "next match"},
+
 		{"ctrl-e", "scroll down"},
 		{"ctrl-y", "scroll up"},
 
@@ -87,9 +90,10 @@ func (screen *AboutScreen) drawScreen(style Style) {
 		{":", "jump to offset"},
 		{"x", "toggle hex offset"},
 
-		{"/", "search file"},
-		{"?", "this screen"},
+		{"D", "date decoding"},
+		{"@", "set date epoch"},
 
+		{"?", "this screen"},
 		{"q", "quit program"},
 	}
 

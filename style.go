@@ -13,6 +13,8 @@ type Style struct {
 	int_fg        termbox.Attribute
 	bit_fg        termbox.Attribute
 
+	selected_option_bg termbox.Attribute
+
 	text_cursor_hex_bg termbox.Attribute
 	bit_cursor_hex_bg  termbox.Attribute
 	int_cursor_hex_bg  termbox.Attribute

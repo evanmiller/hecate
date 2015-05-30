@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"time"
 
 	"github.com/nsf/termbox-go"
 )
@@ -13,6 +14,7 @@ type EditMode int
 const (
 	EditingOffset EditMode = iota + 1
 	EditingSearch
+	EditingEpoch
 )
 
 type ViewPort struct {
@@ -29,7 +31,16 @@ type DataScreen struct {
 	prev_mode    CursorMode
 	prev_search  string
 	edit_mode    EditMode
+	show_date    bool
 	field_editor *FieldEditor
+}
+
+func scanEpoch(value string, epoch time.Time) time.Time {
+	parsed_time, parse_error := time.Parse("1/2/2006", value)
+	if parse_error != nil {
+		return epoch
+	}
+	return parsed_time
 }
 
 func scanOffset(value string, file_pos int) int {
@@ -158,8 +169,10 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event) int {
 				if screen.edit_mode == EditingSearch {
 					screen.cursor = scanSearchString(string_value, screen.bytes, screen.cursor)
 					screen.prev_search = string_value
-				} else {
+				} else if screen.edit_mode == EditingOffset {
 					new_pos = scanOffset(string_value, screen.cursor.pos)
+				} else if screen.edit_mode == EditingEpoch {
+					screen.cursor.epoch_time = scanEpoch(string_value, screen.cursor.epoch_time)
 				}
 			}
 			screen.edit_mode = 0
@@ -178,8 +191,23 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event) int {
 	} else if event.Ch == '/' {
 		screen.field_editor = new(FieldEditor)
 		screen.edit_mode = EditingSearch
+	} else if event.Ch == '@' {
+		if screen.show_date {
+			screen.field_editor = new(FieldEditor)
+			screen.edit_mode = EditingEpoch
+		}
 	} else if event.Ch == 'x' {
 		screen.cursor.hex_mode = !screen.cursor.hex_mode
+	} else if event.Ch == 'D' {
+		screen.show_date = !screen.show_date
+	} else if event.Ch == 's' {
+		if screen.show_date {
+			screen.cursor.epoch_unit = SecondsSinceEpoch
+		}
+	} else if event.Ch == 'd' {
+		if screen.show_date {
+			screen.cursor.epoch_unit = DaysSinceEpoch
+		}
 	} else if event.Ch == 'j' || event.Key == termbox.KeyArrowDown { // down
 		screen.cursor.pos += screen.view_port.bytes_per_row
 	} else if event.Key == termbox.KeyCtrlF || event.Key == termbox.KeyPgdn { // page down
@@ -262,10 +290,10 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event) int {
 }
 
 func (screen *DataScreen) performLayout() {
-	width, height := termbox.Size()
-	legend_height := heightOfWidgets()
-	line_height := 3
 	cursor := screen.cursor
+	width, height := termbox.Size()
+	legend_height := heightOfWidgets(screen.show_date)
+	line_height := 3
 	cursor_row_within_view_port := 0
 
 	if cursor.pos >= (screen.view_port.first_row+screen.view_port.number_of_rows)*screen.view_port.bytes_per_row {
@@ -297,15 +325,16 @@ func (screen *DataScreen) performLayout() {
 }
 
 func (screen *DataScreen) drawScreen(style Style) {
+	cursor := screen.cursor
+	hilite := screen.hilite
+	view_port := screen.view_port
+
+	layout := drawWidgets(screen.cursor, screen.bytes[cursor.pos:cursor.pos+cursor.length()],
+		style, screen.edit_mode, screen.show_date)
 	x, y := 2, 1
 	x_pad := 2
 	line_height := 3
 	width, height := termbox.Size()
-	widget_size := drawWidgets(screen.cursor, style, screen.edit_mode)
-
-	cursor := screen.cursor
-	hilite := screen.hilite
-	view_port := screen.view_port
 
 	last_y := y + view_port.number_of_rows*line_height - 1
 	last_x := x + view_port.bytes_per_row*3 - 1
@@ -392,15 +421,21 @@ func (screen *DataScreen) drawScreen(style Style) {
 	}
 
 	if screen.field_editor != nil {
-		if widget_size.width > 46 {
-			x = (width-widget_size.width)/2 + widget_size.width - 9
-			y = height - 2
+		widget_width := layout.width()
+		widget_height := layout.widget_size.height
+		if layout.pressure < 4 {
+			x = (width-widget_width)/2 + widget_width - 11
+			if screen.edit_mode == EditingEpoch {
+				y = height - 1
+			} else {
+				y = height - widget_height
+			}
 		} else {
 			x = (width - 10) / 2
-			y = height - widget_size.height - 1
+			y = height - widget_height - 1
 		}
 		termbox.SetCursor(x+2+screen.field_editor.cursor_pos, y)
-		drawStringAtPoint(fmt.Sprintf(" %-8s ", screen.field_editor.value), x+1, y,
+		drawStringAtPoint(fmt.Sprintf(" %-10s ", screen.field_editor.value), x+1, y,
 			style.field_editor_fg, style.field_editor_bg)
 	}
 }

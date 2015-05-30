@@ -3,11 +3,13 @@ package main
 import (
 	"fmt"
 	"math"
+	"time"
 
 	"github.com/nsf/termbox-go"
 )
 
 type CursorMode int
+type TimeSinceEpochUnit int
 
 const MAX_INTEGER_WIDTH = 8
 const MIN_INTEGER_WIDTH = 1
@@ -19,6 +21,11 @@ const (
 	BitPatternMode
 	IntegerMode
 	FloatingPointMode
+)
+
+const (
+	SecondsSinceEpoch TimeSinceEpochUnit = iota + 1
+	DaysSinceEpoch
 )
 
 type ByteRange struct {
@@ -34,6 +41,8 @@ type Cursor struct {
 	unsigned   bool
 	big_endian bool
 	hex_mode   bool
+	epoch_time time.Time
+	epoch_unit TimeSinceEpochUnit
 }
 
 func (cursor *Cursor) c_type() string {
@@ -113,8 +122,7 @@ func (cursor *Cursor) highlightRange(data []byte) ByteRange {
 	return hilite
 }
 
-func (cursor *Cursor) formatBytesAsNumber(data []byte) string {
-	str := ""
+func (cursor *Cursor) interpretBytesAsInteger(data []byte) uint64 {
 	var integer uint64
 	if cursor.big_endian {
 		for i := 0; i < len(data); i++ {
@@ -125,6 +133,12 @@ func (cursor *Cursor) formatBytesAsNumber(data []byte) string {
 			integer = (integer * 256) + uint64(data[i])
 		}
 	}
+	return integer
+}
+
+func (cursor *Cursor) formatBytesAsNumber(data []byte) string {
+	str := ""
+	integer := cursor.interpretBytesAsInteger(data)
 	if cursor.mode == IntegerMode {
 		if cursor.int_length == 1 {
 			if cursor.unsigned {
@@ -160,4 +174,31 @@ func (cursor *Cursor) formatBytesAsNumber(data []byte) string {
 		}
 	}
 	return str
+}
+
+func (cursor *Cursor) interpretBytesAsTime(data []byte) time.Time {
+	integer := cursor.interpretBytesAsInteger(data)
+	var date_time time.Time
+	if cursor.mode == IntegerMode {
+		if cursor.epoch_unit == SecondsSinceEpoch {
+			date_time = cursor.epoch_time.Add(time.Duration(integer) * time.Second)
+		} else if cursor.epoch_unit == DaysSinceEpoch {
+			date_time = cursor.epoch_time.Add(time.Duration(integer) * 24 * time.Hour)
+		}
+	} else if cursor.mode == FloatingPointMode {
+		var float float64
+		if cursor.fp_length == 4 {
+			float = float64(math.Float32frombits(uint32(integer)))
+		} else {
+			float = math.Float64frombits(integer)
+		}
+		if cursor.epoch_unit == SecondsSinceEpoch {
+			date_time = cursor.epoch_time.Add(time.Duration(float * float64(time.Second)))
+		} else {
+			date_time = cursor.epoch_time.Add(time.Duration(float * 24 * float64(time.Hour)))
+		}
+	} else {
+		date_time = cursor.epoch_time
+	}
+	return date_time.UTC()
 }

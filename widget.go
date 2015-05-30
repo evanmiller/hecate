@@ -5,17 +5,17 @@ import (
 )
 
 type Widget interface {
-	layoutUnderPressure(pressure int) Size
-	drawAtPoint(cursor Cursor, point Point, pressure int, style Style, mode EditMode) Size
+	sizeForLayout(layout Layout) Size
+	drawAtPoint(cursor Cursor, data []byte, point Point, layout Layout, style Style, mode EditMode) Size
 }
 
 type WidgetSlice []Widget
 
-func (widgets WidgetSlice) sizeAtPressure(pressure int) Size {
+func (widgets WidgetSlice) sizeForLayout(layout Layout) Size {
 	total_widget_width := 0
 	max_widget_height := 0
 	for _, widget := range widgets {
-		widget_size := widget.layoutUnderPressure(pressure)
+		widget_size := widget.sizeForLayout(layout)
 		total_widget_width += widget_size.width
 		if widget_size.height > max_widget_height {
 			max_widget_height = widget_size.height
@@ -24,10 +24,10 @@ func (widgets WidgetSlice) sizeAtPressure(pressure int) Size {
 	return Size{total_widget_width, max_widget_height}
 }
 
-func (widgets WidgetSlice) numberVisibleAtPressure(pressure int) int {
+func (widgets WidgetSlice) numberVisibleForLayout(layout Layout) int {
 	count := 0
 	for _, widget := range widgets {
-		widget_size := widget.layoutUnderPressure(pressure)
+		widget_size := widget.sizeForLayout(layout)
 		if widget_size.width > 0 {
 			count++
 		}
@@ -35,22 +35,21 @@ func (widgets WidgetSlice) numberVisibleAtPressure(pressure int) int {
 	return count
 }
 
-func (widgets WidgetSlice) layout() (int, int) {
+func (widgets WidgetSlice) layout(show_date bool) Layout {
 	width, _ := termbox.Size()
-	pressure := 0
-	spacing := 4
+	layout := Layout{pressure: 0, spacing: 4, num_spaces: 0, widget_size: Size{0, 0}, show_date: show_date}
 	padding := 2
-	for ; pressure < 10; pressure++ {
-		spacing = 4
-		total_widget_size := widgets.sizeAtPressure(pressure)
-		num_spaces := widgets.numberVisibleAtPressure(pressure) - 1
-		for ; total_widget_size.width+num_spaces*spacing > (width-2*padding) && spacing > 2; spacing-- {
+	for ; layout.pressure < 10; layout.pressure++ {
+		layout.spacing = 4
+		layout.widget_size = widgets.sizeForLayout(layout)
+		layout.num_spaces = widgets.numberVisibleForLayout(layout) - 1
+		for ; layout.width() > (width-2*padding) && layout.spacing > 2; layout.spacing-- {
 		}
-		if total_widget_size.width+num_spaces*spacing <= (width - 2*padding) {
+		if layout.width() <= (width - 2*padding) {
 			break
 		}
 	}
-	return pressure, spacing
+	return layout
 }
 
 func listOfWidgets() WidgetSlice {
@@ -63,32 +62,28 @@ func listOfWidgets() WidgetSlice {
 	return all_widgets[:]
 }
 
-func heightOfWidgets() int {
+func heightOfWidgets(show_date bool) int {
 	widgets := listOfWidgets()
-	pressure, _ := widgets.layout()
-	widget_size := widgets.sizeAtPressure(pressure)
-	return widget_size.height
+	layout := widgets.layout(show_date)
+	return layout.widget_size.height
 }
 
-func drawWidgets(cursor Cursor, style Style, mode EditMode) Size {
+func drawWidgets(cursor Cursor, data []byte, style Style, mode EditMode, show_date bool) Layout {
 	widgets := listOfWidgets()
 
 	width, height := termbox.Size()
-	spacing := 4
 	padding := 2
-	pressure, spacing := widgets.layout()
-	total_widget_size := widgets.sizeAtPressure(pressure)
-	num_spaces := widgets.numberVisibleAtPressure(pressure) - 1
-	start_x := (width-2*padding-(total_widget_size.width+num_spaces*spacing))/2 + padding
-	start_y := height - total_widget_size.height
+	layout := widgets.layout(show_date)
+	start_x := (width-2*padding-layout.width())/2 + padding
+	start_y := height - layout.widget_size.height
 	point := Point{start_x, start_y}
 	for _, widget := range widgets {
-		widget_size := widget.drawAtPoint(cursor, point, pressure, style, mode)
+		widget_size := widget.drawAtPoint(cursor, data, point, layout, style, mode)
 		point.x += widget_size.width
 		if widget_size.width > 0 {
-			point.x += spacing
+			point.x += layout.spacing
 		}
 	}
 
-	return Size{total_widget_size.width + num_spaces*spacing, total_widget_size.height}
+	return layout
 }

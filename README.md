@@ -30,10 +30,12 @@ Full list of commands:
 <tr><td>g</td><td>first byte</td> <td>H</td><td>shrink cursor</td></tr>
 <tr><td>G</td><td>last byte</td> <td>L</td><td>grow cursor</td></tr>
 
+<tr><td>/</td><td>search file</td> <td>D</td><td>date decoding</td></tr>
+<tr><td>n</td><td>next match</td> <td>@</td><td>set date epoch</td></tr>
+
 <tr><td>ctrl-f</td><td>page down</td> <td>:</td><td>jump to offset</td></tr>
 <tr><td>ctrl-b</td><td>page up</td> <td>x</td><td>toggle hex offset</td></tr>
 
-<tr><td>ctrl-e</td><td>scroll down</td> <td>/</td><td>search file</td></tr>
+<tr><td>ctrl-e</td><td>scroll down</td> <td>q</td><td>quit program</td></tr>
 <tr><td>ctrl-y</td><td>scroll up</td> <td>?</td><td>help screen</td></tr> 
-<tr><td></td><td></td> <td>q</td><td>quit program</td></tr>
 </table>
