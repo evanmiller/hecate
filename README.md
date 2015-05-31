@@ -3,10 +3,8 @@ The Hex Editor From Hell!
 
 Usage:
 
-    go get -u github.com/edsrzf/mmap-go
-    go get -u github.com/nsf/termbox-go
-    go build
-    ./hecate /path/to/binary/file
+    go get -u github.com/evanmiller/hecate
+    $GOPATH/bin/hecate /path/to/binary/file
 
 Hecate is not actually a hex editor, only a viewer. It is a terminal program
 written in Go with Vim-like controls; place the cursor over some bytes and
