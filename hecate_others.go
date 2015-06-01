@@ -29,6 +29,7 @@ func defaultStyle() Style {
 	style.bit_fg = termbox.Attribute(154)
 	style.space_rune_fg = termbox.Attribute(240)
 	style.selected_option_bg = termbox.Attribute(240)
+	style.search_progress_fg = termbox.Attribute(76)
 
 	style.text_cursor_hex_bg = termbox.Attribute(167)
 	style.bit_cursor_hex_bg = termbox.Attribute(26)

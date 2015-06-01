@@ -14,6 +14,7 @@ type Style struct {
 	bit_fg        termbox.Attribute
 
 	selected_option_bg termbox.Attribute
+	search_progress_fg termbox.Attribute
 
 	text_cursor_hex_bg termbox.Attribute
 	bit_cursor_hex_bg  termbox.Attribute

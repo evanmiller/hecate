@@ -23,19 +23,20 @@ type ViewPort struct {
 }
 
 type DataScreen struct {
-	bytes                 []byte
-	cursor                Cursor
-	hilite                ByteRange
-	view_port             ViewPort
-	prev_mode             CursorMode
-	prev_search           string
-	edit_mode             EditMode
-	show_date             bool
-	is_searching          bool
-	search_progress       float64
-	search_result_channel chan Cursor
-	search_quit_channel   chan bool
-	field_editor          *FieldEditor
+	bytes                   []byte
+	cursor                  Cursor
+	hilite                  ByteRange
+	view_port               ViewPort
+	prev_mode               CursorMode
+	prev_search             string
+	edit_mode               EditMode
+	show_date               bool
+	is_searching            bool
+	search_progress         float64
+	search_progress_channel chan int
+	search_result_channel   chan Cursor
+	search_quit_channel     chan bool
+	field_editor            *FieldEditor
 }
 
 func scanEpoch(value string, epoch time.Time) time.Time {
@@ -68,7 +69,7 @@ func scanOffset(value string, file_pos int) int {
 	return -1
 }
 
-func scanSearchString(value string, bytes []byte, cursor Cursor, quit chan bool) Cursor {
+func scanSearchString(value string, bytes []byte, cursor Cursor, quit chan bool, progress chan int) Cursor {
 	representations := make(map[string]*Cursor)
 
 	var scanned_fp float64
@@ -118,13 +119,13 @@ func scanSearchString(value string, bytes []byte, cursor Cursor, quit chan bool)
 		start_pos := cursor.pos + 1
 		found_pos := -1
 		if start_pos < len(bytes) {
-			found_pos = interruptibleSearch(bytes[start_pos:], k, quit)
+			found_pos = interruptibleSearch(bytes[start_pos:], k, quit, progress)
 			if found_pos >= 0 {
 				found_pos += start_pos
 			}
 		}
 		if found_pos == -1 {
-			found_pos = interruptibleSearch(bytes[0:cursor.pos], k, quit)
+			found_pos = interruptibleSearch(bytes[0:cursor.pos], k, quit, progress)
 		}
 		if found_pos == -2 {
 			return first_cursor
@@ -162,6 +163,7 @@ func (screen *DataScreen) initializeWithBytes(bytes []byte) {
 
 	screen.search_result_channel = make(chan Cursor)
 	screen.search_quit_channel = make(chan bool)
+	screen.search_progress_channel = make(chan int)
 	screen.bytes = bytes
 	screen.cursor = cursor
 	screen.hilite = cursor.highlightRange(bytes)
@@ -174,6 +176,12 @@ func (screen *DataScreen) receiveEvents(input chan termbox.Event, output chan in
 		select {
 		case event := <-input:
 			output <- screen.handleKeyEvent(event)
+		case bytes_read := <-screen.search_progress_channel:
+			screen.search_progress += float64(bytes_read) / float64(len(screen.bytes))
+			if screen.search_progress > 1.0 {
+				screen.search_progress = 0.0
+			}
+			output <- DATA_SCREEN_INDEX
 		case search_result := <-screen.search_result_channel:
 			screen.is_searching = false
 			screen.cursor = search_result
@@ -210,13 +218,14 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event) int {
 		if is_done {
 			if len(string_value) > 0 {
 				if screen.edit_mode == EditingSearch {
+					screen.is_searching = true
+					screen.search_progress = 0.0
+					screen.prev_search = string_value
 					go func() {
-						cursor := scanSearchString(string_value, screen.bytes,
-							screen.cursor, screen.search_quit_channel)
+						cursor := scanSearchString(string_value, screen.bytes, screen.cursor,
+							screen.search_quit_channel, screen.search_progress_channel)
 						screen.search_result_channel <- cursor
 					}()
-					screen.is_searching = true
-					screen.prev_search = string_value
 				} else if screen.edit_mode == EditingOffset {
 					new_pos = scanOffset(string_value, screen.cursor.pos)
 				} else if screen.edit_mode == EditingEpoch {
@@ -232,8 +241,8 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event) int {
 	} else if event.Ch == 'n' {
 		if len(screen.prev_search) > 0 {
 			go func() {
-				cursor := scanSearchString(screen.prev_search, screen.bytes,
-					screen.cursor, screen.search_quit_channel)
+				cursor := scanSearchString(screen.prev_search, screen.bytes, screen.cursor,
+					screen.search_quit_channel, screen.search_progress_channel)
 				screen.search_result_channel <- cursor
 			}()
 			screen.is_searching = true

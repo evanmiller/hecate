@@ -23,7 +23,7 @@ func hashStr(sep string) (uint32, uint32) {
 }
 
 // Index returns the index of the first instance of sep in s, or -1 if sep is not present in s.
-func interruptibleSearch(s []byte, sep string, quit chan bool) int {
+func interruptibleSearch(s []byte, sep string, quit chan bool, progress chan int) int {
 	n := len(sep)
 	switch {
 	case n == 0:
@@ -57,6 +57,10 @@ func interruptibleSearch(s []byte, sep string, quit chan bool) int {
 			return -2
 		default:
 		}
+		if i%10000 == 0 {
+			progress <- 10000
+		}
 	}
+	progress <- len(s) % 10000
 	return -1
 }
