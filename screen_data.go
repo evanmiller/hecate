@@ -69,7 +69,7 @@ func scanOffset(value string, file_pos int) int {
 	return -1
 }
 
-func scanSearchString(value string, bytes []byte, cursor Cursor, quit chan bool, progress chan int) *Cursor {
+func scanSearchString(value string, bytes []byte, cursor Cursor, quit <-chan bool, progress chan<- int) *Cursor {
 	representations := make(map[string]*Cursor)
 
 	var scanned_fp float64
@@ -176,7 +176,7 @@ func (screen *DataScreen) initializeWithBytes(bytes []byte) {
 	screen.prev_mode = cursor.mode
 }
 
-func (screen *DataScreen) receiveEvents(input chan termbox.Event, output chan int, quit chan bool) {
+func (screen *DataScreen) receiveEvents(input <-chan termbox.Event, output chan<- int, quit <-chan bool) {
 	for {
 		do_quit := false
 		select {
@@ -199,7 +199,9 @@ func (screen *DataScreen) receiveEvents(input chan termbox.Event, output chan in
 			do_quit = true
 		}
 		if do_quit {
-			screen.search_quit_channel <- true
+			if screen.is_searching {
+				screen.search_quit_channel <- true
+			}
 			break
 		}
 	}

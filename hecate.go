@@ -26,7 +26,7 @@ func mainLoop(bytes []byte, style Style) {
 		key_channel := make(chan termbox.Event, 10)
 		screen_key_channels = append(screen_key_channels, key_channel)
 
-		quit_channel := make(chan bool)
+		quit_channel := make(chan bool, 10)
 		screen_quit_channels = append(screen_quit_channels, quit_channel)
 	}
 

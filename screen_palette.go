@@ -8,7 +8,7 @@ import (
 
 type PaletteScreen int
 
-func (screen *PaletteScreen) receiveEvents(input chan termbox.Event, output chan int, quit chan bool) {
+func (screen *PaletteScreen) receiveEvents(input <-chan termbox.Event, output chan<- int, quit <-chan bool) {
 	for {
 		do_quit := false
 		select {

@@ -25,7 +25,7 @@ func drawCommandsAtPoint(commands []Command, x int, y int, style Style) {
 	}
 }
 
-func (screen *AboutScreen) receiveEvents(input chan termbox.Event, output chan int, quit chan bool) {
+func (screen *AboutScreen) receiveEvents(input <-chan termbox.Event, output chan<- int, quit <-chan bool) {
 	for {
 		do_quit := false
 		select {
