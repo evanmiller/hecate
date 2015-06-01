@@ -56,7 +56,7 @@ func (widget OffsetWidget) drawAtPoint(screen *DataScreen, layout Layout, point 
 			drawStringAtPoint(fmt.Sprintf("%2.2f%% ", 100*screen.search_progress), x_pos+1, y_pos, style.space_rune_fg, bg)
 		} else if fifty_sixths < 12 {
 			drawStringAtPoint(fmt.Sprintf("%2.1f%% ", 100*screen.search_progress), x_pos+2, y_pos, style.space_rune_fg, bg)
-		} else if fifty_sixths < 28 {
+		} else if fifty_sixths < 32 {
 			drawStringAtPoint(fmt.Sprintf("%2.0f%% ", 100*screen.search_progress), x_pos+4, y_pos, style.space_rune_fg, bg)
 		}
 		for i := 0; i < 7; i++ {
@@ -66,8 +66,8 @@ func (widget OffsetWidget) drawAtPoint(screen *DataScreen, layout Layout, point 
 				drawStringAtPoint(eights[fifty_sixths-8*i], x_pos+i, y_pos, style.search_progress_fg, bg)
 			}
 		}
-		if fifty_sixths >= 28 {
-			drawStringAtPoint(fmt.Sprintf("%3.0f%% ", 100*screen.search_progress), x_pos, y_pos, fg, style.search_progress_fg)
+		if fifty_sixths >= 32 {
+			drawStringAtPoint(fmt.Sprintf("%3.0f%%", 100*screen.search_progress), x_pos, y_pos, fg, style.search_progress_fg)
 		}
 		x_pos += 7
 		x_pos += drawStringAtPoint("]", x_pos, y_pos, fg, bg)
