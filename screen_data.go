@@ -228,6 +228,10 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event) int {
 		screen.cursor.pos = 0
 	} else if event.Ch == 'G' {
 		screen.cursor.pos = len(screen.bytes)
+	} else if event.Ch == '^' {
+		screen.cursor.pos = screen.cursor.pos / screen.view_port.bytes_per_row * screen.view_port.bytes_per_row
+	} else if event.Ch == '$' {
+		screen.cursor.pos = (screen.cursor.pos/screen.view_port.bytes_per_row+1)*screen.view_port.bytes_per_row - screen.cursor.length()
 	} else if modes[event.Ch] != 0 {
 		if screen.cursor.mode == modes[event.Ch] {
 			screen.cursor.mode = screen.prev_mode
