@@ -17,7 +17,7 @@ func (widget NavigationWidget) sizeForLayout(layout Layout) Size {
 	return Size{runeCount, 2}
 }
 
-func (widget NavigationWidget) drawAtPoint(cursor Cursor, data []byte, point Point, layout Layout, style Style, mode EditMode) Size {
+func (widget NavigationWidget) drawAtPoint(screen *DataScreen, layout Layout, point Point, style Style) Size {
 	fg := style.default_fg
 	bg := style.default_bg
 	x_pos := point.x

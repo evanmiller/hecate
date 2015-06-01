@@ -25,8 +25,19 @@ func drawCommandsAtPoint(commands []Command, x int, y int, style Style) {
 	}
 }
 
-func (screen *AboutScreen) handleKeyEvent(event termbox.Event) int {
-	return DATA_SCREEN_INDEX
+func (screen *AboutScreen) receiveEvents(input chan termbox.Event, output chan int, quit chan bool) {
+	for {
+		do_quit := false
+		select {
+		case <-input:
+			output <- DATA_SCREEN_INDEX
+		case <-quit:
+			do_quit = true
+		}
+		if do_quit {
+			break
+		}
+	}
 }
 
 func (screen *AboutScreen) performLayout() {

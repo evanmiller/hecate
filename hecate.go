@@ -13,23 +13,61 @@ const PROGRAM_NAME = "hecate"
 
 func mainLoop(bytes []byte, style Style) {
 	screens := defaultScreensForData(bytes)
-	display_screen := screens[DATA_SCREEN_INDEX]
-	layoutAndDrawScreen(display_screen, style)
-	for {
-		event := termbox.PollEvent()
-		if event.Type == termbox.EventKey {
-			handleSpecialKeys(event.Key)
+	active_idx := DATA_SCREEN_INDEX
 
-			new_screen_index := display_screen.handleKeyEvent(event)
+	var screen_key_channels []chan termbox.Event
+	var screen_quit_channels []chan bool
+	switch_channel := make(chan int)
+	main_key_channel := make(chan termbox.Event, 10)
+
+	layoutAndDrawScreen(screens[active_idx], style)
+
+	for _ = range screens {
+		key_channel := make(chan termbox.Event, 10)
+		screen_key_channels = append(screen_key_channels, key_channel)
+
+		quit_channel := make(chan bool)
+		screen_quit_channels = append(screen_quit_channels, quit_channel)
+	}
+
+	for i, s := range screens {
+		go func(index int) {
+			s.receiveEvents(screen_key_channels[index], switch_channel,
+				screen_quit_channels[index])
+		}(i)
+	}
+
+	go func() {
+		for {
+			main_key_channel <- termbox.PollEvent()
+		}
+	}()
+
+	for {
+		do_quit := false
+		select {
+		case event := <-main_key_channel:
+			if event.Type == termbox.EventKey {
+				handleSpecialKeys(event.Key)
+
+				screen_key_channels[active_idx] <- event
+			}
+			if event.Type == termbox.EventResize {
+				layoutAndDrawScreen(screens[active_idx], style)
+			}
+		case new_screen_index := <-switch_channel:
 			if new_screen_index < len(screens) {
-				display_screen = screens[new_screen_index]
-				layoutAndDrawScreen(display_screen, style)
+				active_idx = new_screen_index
+				layoutAndDrawScreen(screens[active_idx], style)
 			} else {
-				break
+				do_quit = true
 			}
 		}
-		if event.Type == termbox.EventResize {
-			layoutAndDrawScreen(display_screen, style)
+		if do_quit {
+			for _, c := range screen_quit_channels {
+				c <- true
+			}
+			break
 		}
 	}
 }

@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"math"
-	"strings"
 	"time"
 
 	"github.com/nsf/termbox-go"
@@ -24,15 +23,19 @@ type ViewPort struct {
 }
 
 type DataScreen struct {
-	bytes        []byte
-	cursor       Cursor
-	hilite       ByteRange
-	view_port    ViewPort
-	prev_mode    CursorMode
-	prev_search  string
-	edit_mode    EditMode
-	show_date    bool
-	field_editor *FieldEditor
+	bytes                 []byte
+	cursor                Cursor
+	hilite                ByteRange
+	view_port             ViewPort
+	prev_mode             CursorMode
+	prev_search           string
+	edit_mode             EditMode
+	show_date             bool
+	is_searching          bool
+	search_progress       float64
+	search_result_channel chan Cursor
+	search_quit_channel   chan bool
+	field_editor          *FieldEditor
 }
 
 func scanEpoch(value string, epoch time.Time) time.Time {
@@ -65,7 +68,7 @@ func scanOffset(value string, file_pos int) int {
 	return -1
 }
 
-func scanSearchString(value string, bytes []byte, cursor Cursor) Cursor {
+func scanSearchString(value string, bytes []byte, cursor Cursor, quit chan bool) Cursor {
 	representations := make(map[string]*Cursor)
 
 	var scanned_fp float64
@@ -115,13 +118,16 @@ func scanSearchString(value string, bytes []byte, cursor Cursor) Cursor {
 		start_pos := cursor.pos + 1
 		found_pos := -1
 		if start_pos < len(bytes) {
-			found_pos = strings.Index(string(bytes[start_pos:]), k)
-			if found_pos != -1 {
+			found_pos = interruptibleSearch(bytes[start_pos:], k, quit)
+			if found_pos >= 0 {
 				found_pos += start_pos
 			}
 		}
 		if found_pos == -1 {
-			found_pos = strings.Index(string(bytes[0:cursor.pos]), k)
+			found_pos = interruptibleSearch(bytes[0:cursor.pos], k, quit)
+		}
+		if found_pos == -2 {
+			return first_cursor
 		}
 		v.pos = found_pos
 	}
@@ -150,6 +156,39 @@ func scanSearchString(value string, bytes []byte, cursor Cursor) Cursor {
 	return first_cursor
 }
 
+func (screen *DataScreen) initializeWithBytes(bytes []byte) {
+	cursor := Cursor{int_length: 4, fp_length: 4, mode: StringMode,
+		epoch_unit: SecondsSinceEpoch, epoch_time: time.Unix(0, 0).UTC()}
+
+	screen.search_result_channel = make(chan Cursor)
+	screen.search_quit_channel = make(chan bool)
+	screen.bytes = bytes
+	screen.cursor = cursor
+	screen.hilite = cursor.highlightRange(bytes)
+	screen.prev_mode = cursor.mode
+}
+
+func (screen *DataScreen) receiveEvents(input chan termbox.Event, output chan int, quit chan bool) {
+	for {
+		do_quit := false
+		select {
+		case event := <-input:
+			output <- screen.handleKeyEvent(event)
+		case search_result := <-screen.search_result_channel:
+			screen.is_searching = false
+			screen.cursor = search_result
+			screen.hilite = screen.cursor.highlightRange(screen.bytes)
+			output <- DATA_SCREEN_INDEX
+		case <-quit:
+			do_quit = true
+		}
+		if do_quit {
+			screen.search_quit_channel <- true
+			break
+		}
+	}
+}
+
 func (screen *DataScreen) handleKeyEvent(event termbox.Event) int {
 	modes := map[rune]CursorMode{
 		'i': IntegerMode,
@@ -161,13 +200,22 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event) int {
 		return PALETTE_SCREEN_INDEX
 	} else if event.Ch == '?' { // about
 		return ABOUT_SCREEN_INDEX
+	} else if screen.is_searching {
+		if event.Key == termbox.KeyCtrlC {
+			screen.search_quit_channel <- true
+		}
 	} else if screen.field_editor != nil {
 		new_pos := -1
 		string_value, is_done := screen.field_editor.handleKeyEvent(event)
 		if is_done {
 			if len(string_value) > 0 {
 				if screen.edit_mode == EditingSearch {
-					screen.cursor = scanSearchString(string_value, screen.bytes, screen.cursor)
+					go func() {
+						cursor := scanSearchString(string_value, screen.bytes,
+							screen.cursor, screen.search_quit_channel)
+						screen.search_result_channel <- cursor
+					}()
+					screen.is_searching = true
 					screen.prev_search = string_value
 				} else if screen.edit_mode == EditingOffset {
 					new_pos = scanOffset(string_value, screen.cursor.pos)
@@ -183,7 +231,12 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event) int {
 		}
 	} else if event.Ch == 'n' {
 		if len(screen.prev_search) > 0 {
-			screen.cursor = scanSearchString(screen.prev_search, screen.bytes, screen.cursor)
+			go func() {
+				cursor := scanSearchString(screen.prev_search, screen.bytes,
+					screen.cursor, screen.search_quit_channel)
+				screen.search_result_channel <- cursor
+			}()
+			screen.is_searching = true
 		}
 	} else if event.Ch == ':' {
 		screen.field_editor = new(FieldEditor)
@@ -333,8 +386,7 @@ func (screen *DataScreen) drawScreen(style Style) {
 	hilite := screen.hilite
 	view_port := screen.view_port
 
-	layout := drawWidgets(screen.cursor, screen.bytes[cursor.pos:cursor.pos+cursor.length()],
-		style, screen.edit_mode, screen.show_date)
+	layout := drawWidgets(screen, style)
 	x, y := 2, 1
 	x_pad := 2
 	line_height := 3

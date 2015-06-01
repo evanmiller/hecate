@@ -37,13 +37,15 @@ func (widget CursorWidget) sizeForLayout(layout Layout) Size {
 	return Size{runeCount, height}
 }
 
-func (widget CursorWidget) drawAtPoint(cursor Cursor, data []byte, point Point, layout Layout, style Style, mode EditMode) Size {
+func (widget CursorWidget) drawAtPoint(screen *DataScreen, layout Layout, point Point, style Style) Size {
 	fg := style.default_fg
 	bg := style.default_bg
+	cursor := screen.cursor
 	x_pos := point.x
 	y_pos := point.y
 	max_x_pos := x_pos
 	pressure := layout.pressure
+	data := screen.bytes[cursor.pos : cursor.pos+cursor.length()]
 
 	if pressure < 5 || pressure == 6 {
 		x_pos += drawStringAtPoint("Cursor: ", x_pos, y_pos, fg, bg)

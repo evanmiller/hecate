@@ -2,13 +2,25 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/nsf/termbox-go"
 )
 
 type PaletteScreen int
 
-func (screen *PaletteScreen) handleKeyEvent(event termbox.Event) int {
-	return DATA_SCREEN_INDEX
+func (screen *PaletteScreen) receiveEvents(input chan termbox.Event, output chan int, quit chan bool) {
+	for {
+		do_quit := false
+		select {
+		case <-input:
+			output <- DATA_SCREEN_INDEX
+		case <-quit:
+			do_quit = true
+		}
+		if do_quit {
+			break
+		}
+	}
 }
 
 func (screen *PaletteScreen) performLayout() {
