@@ -34,7 +34,7 @@ type DataScreen struct {
 	is_searching            bool
 	search_progress         float64
 	search_progress_channel chan int
-	search_result_channel   chan Cursor
+	search_result_channel   chan *Cursor
 	search_quit_channel     chan bool
 	field_editor            *FieldEditor
 }
@@ -69,7 +69,7 @@ func scanOffset(value string, file_pos int) int {
 	return -1
 }
 
-func scanSearchString(value string, bytes []byte, cursor Cursor, quit chan bool, progress chan int) Cursor {
+func scanSearchString(value string, bytes []byte, cursor Cursor, quit chan bool, progress chan int) *Cursor {
 	representations := make(map[string]*Cursor)
 
 	var scanned_fp float64
@@ -128,13 +128,16 @@ func scanSearchString(value string, bytes []byte, cursor Cursor, quit chan bool,
 			found_pos = interruptibleSearch(bytes[0:cursor.pos], k, quit, progress)
 		}
 		if found_pos == -2 {
-			return first_cursor
+			return nil
 		}
 		v.pos = found_pos
 	}
 
+	found_match := false
+
 	for _, v := range representations {
 		if v.pos != -1 {
+			found_match = true
 			ranked_pos := v.pos - cursor.pos
 			if ranked_pos < 0 {
 				ranked_pos += len(bytes)
@@ -154,14 +157,17 @@ func scanSearchString(value string, bytes []byte, cursor Cursor, quit chan bool,
 			}
 		}
 	}
-	return first_cursor
+	if !found_match {
+		return nil
+	}
+	return &first_cursor
 }
 
 func (screen *DataScreen) initializeWithBytes(bytes []byte) {
 	cursor := Cursor{int_length: 4, fp_length: 4, mode: StringMode,
 		epoch_unit: SecondsSinceEpoch, epoch_time: time.Unix(0, 0).UTC()}
 
-	screen.search_result_channel = make(chan Cursor)
+	screen.search_result_channel = make(chan *Cursor)
 	screen.search_quit_channel = make(chan bool)
 	screen.search_progress_channel = make(chan int)
 	screen.bytes = bytes
@@ -184,8 +190,10 @@ func (screen *DataScreen) receiveEvents(input chan termbox.Event, output chan in
 			output <- DATA_SCREEN_INDEX
 		case search_result := <-screen.search_result_channel:
 			screen.is_searching = false
-			screen.cursor = search_result
-			screen.hilite = screen.cursor.highlightRange(screen.bytes)
+			if search_result != nil {
+				screen.cursor = *search_result
+				screen.hilite = screen.cursor.highlightRange(screen.bytes)
+			}
 			output <- DATA_SCREEN_INDEX
 		case <-quit:
 			do_quit = true
@@ -208,10 +216,6 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event) int {
 		return PALETTE_SCREEN_INDEX
 	} else if event.Ch == '?' { // about
 		return ABOUT_SCREEN_INDEX
-	} else if screen.is_searching {
-		if event.Key == termbox.KeyCtrlC {
-			screen.search_quit_channel <- true
-		}
 	} else if screen.field_editor != nil {
 		new_pos := -1
 		string_value, is_done := screen.field_editor.handleKeyEvent(event)
@@ -239,7 +243,7 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event) int {
 			screen.cursor.pos = new_pos
 		}
 	} else if event.Ch == 'n' {
-		if len(screen.prev_search) > 0 {
+		if len(screen.prev_search) > 0 && !screen.is_searching {
 			go func() {
 				cursor := scanSearchString(screen.prev_search, screen.bytes, screen.cursor,
 					screen.search_quit_channel, screen.search_progress_channel)
@@ -248,9 +252,15 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event) int {
 			screen.is_searching = true
 		}
 	} else if event.Ch == ':' {
+		if screen.is_searching {
+			screen.search_quit_channel <- true
+		}
 		screen.field_editor = new(FieldEditor)
 		screen.edit_mode = EditingOffset
 	} else if event.Ch == '/' {
+		if screen.is_searching {
+			screen.search_quit_channel <- true
+		}
 		screen.field_editor = new(FieldEditor)
 		screen.edit_mode = EditingSearch
 	} else if event.Ch == '@' {
@@ -337,6 +347,10 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event) int {
 		screen.view_port.first_row--
 		if screen.cursor.pos > (screen.view_port.first_row+screen.view_port.number_of_rows)*screen.view_port.bytes_per_row {
 			screen.cursor.pos -= screen.view_port.bytes_per_row
+		}
+	} else if event.Key == termbox.KeyCtrlD {
+		if screen.is_searching {
+			screen.search_quit_channel <- true
 		}
 	} else if event.Ch == 'q' || event.Key == termbox.KeyEsc || event.Key == termbox.KeyCtrlC {
 		return EXIT_SCREEN_INDEX
