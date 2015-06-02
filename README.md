@@ -14,7 +14,7 @@ floating point) to see what those bytes represent. Toggle endianness with **e**
 and signedness with **u**.
 
 Screenshot:
-![Hecate screenshot](http://www.evanmiller.org/images/hecate-screenshot1.png)
+![Hecate screenshot](http://www.evanmiller.org/images/hecate-screenshot2.png)
 
 Full list of commands:
 
