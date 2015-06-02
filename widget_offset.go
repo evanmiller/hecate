@@ -16,20 +16,20 @@ func (widget OffsetWidget) sizeForLayout(layout Layout) Size {
 	return Size{width, height}
 }
 
-func (widget OffsetWidget) drawAtPoint(screen *DataScreen, layout Layout, point Point, style Style) Size {
+func (widget OffsetWidget) drawAtPoint(tab *DataTab, layout Layout, point Point, style Style) Size {
 	if layout.pressure > 3 {
 		return Size{0, 0}
 	}
 	fg := style.default_fg
 	bg := style.default_bg
-	cursor := screen.cursor
+	cursor := tab.cursor
 	y_pos := point.y
 	x_pos := point.x
 	width := 20
-	if screen.edit_mode == EditingSearch || screen.is_searching {
+	if tab.edit_mode == EditingSearch || tab.is_searching {
 		x_pos += drawStringAtPoint("Search(/)", point.x, y_pos, fg, bg)
-		if screen.is_searching {
-			drawStringAtPoint(screen.prev_search, x_pos+2, y_pos, fg, bg)
+		if tab.is_searching {
+			drawStringAtPoint(tab.prev_search, x_pos+2, y_pos, fg, bg)
 		}
 	} else if cursor.hex_mode {
 		drawStringAtPoint(fmt.Sprintf("Offset(:)  0x%x", cursor.pos), point.x, y_pos, fg, bg)
@@ -38,7 +38,7 @@ func (widget OffsetWidget) drawAtPoint(screen *DataScreen, layout Layout, point 
 	}
 	y_pos++
 	x_pos = point.x
-	if screen.is_searching {
+	if tab.is_searching {
 		x_pos += drawStringAtPoint("[", x_pos, y_pos, fg, bg)
 		eights := [...]string{
 			" ",
@@ -51,9 +51,9 @@ func (widget OffsetWidget) drawAtPoint(screen *DataScreen, layout Layout, point 
 			"▉",
 			"█",
 		}
-		fifty_sixths := int(7 * 8 * screen.search_progress)
+		fifty_sixths := int(7 * 8 * tab.search_progress)
 		if fifty_sixths < 2 {
-			drawStringAtPoint(fmt.Sprintf("%2.2f%% ", 100*screen.search_progress), x_pos+1, y_pos, style.space_rune_fg, bg)
+			drawStringAtPoint(fmt.Sprintf("%2.2f%% ", 100*tab.search_progress), x_pos+1, y_pos, style.space_rune_fg, bg)
 		}
 		for i := 0; i < 7; i++ {
 			if fifty_sixths >= 8*(i+1) {

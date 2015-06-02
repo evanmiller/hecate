@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path"
 
 	mmap "github.com/edsrzf/mmap-go"
 
@@ -11,8 +12,13 @@ import (
 
 const PROGRAM_NAME = "hecate"
 
-func mainLoop(bytes []byte, style Style) {
-	screens := defaultScreensForData(bytes)
+type FileInfo struct {
+	filename string
+	bytes    []byte
+}
+
+func mainLoop(files []FileInfo, style Style) {
+	screens := defaultScreensForFiles(files)
 	active_idx := DATA_SCREEN_INDEX
 
 	var screen_key_channels []chan termbox.Event
@@ -75,33 +81,37 @@ func mainLoop(bytes []byte, style Style) {
 func main() {
 	var err error
 
-	if len(os.Args) != 2 {
-		fmt.Printf("Usage: %s <filename>\n", PROGRAM_NAME)
+	if len(os.Args) < 2 {
+		fmt.Printf("Usage: %s <filename> [...]\n", PROGRAM_NAME)
 		os.Exit(1)
 	}
-	path := os.Args[1]
+	var files []FileInfo
+	for i := 1; i < len(os.Args); i++ {
+		file_path := os.Args[i]
 
-	file, err := os.Open(path)
-	if err != nil {
-		fmt.Printf("Error opening file: %q\n", err.Error())
-		os.Exit(1)
-	}
+		file, err := os.Open(file_path)
+		if err != nil {
+			fmt.Printf("Error opening file: %q\n", err.Error())
+			os.Exit(1)
+		}
 
-	fi, err := file.Stat()
-	if err != nil {
-		fmt.Printf("Error stat'ing file: %q\n", err.Error())
-		os.Exit(1)
-	}
+		fi, err := file.Stat()
+		if err != nil {
+			fmt.Printf("Error stat'ing file: %q\n", err.Error())
+			os.Exit(1)
+		}
 
-	if fi.Size() < 8 {
-		fmt.Printf("File %s is too short to be edited\n", path)
-		os.Exit(1)
-	}
+		if fi.Size() < 8 {
+			fmt.Printf("File %s is too short to be edited\n", file_path)
+			os.Exit(1)
+		}
 
-	mm, err := mmap.Map(file, mmap.RDONLY, 0)
-	if err != nil {
-		fmt.Printf("Error mmap'ing file: %q\n", err.Error())
-		os.Exit(1)
+		mm, err := mmap.Map(file, mmap.RDONLY, 0)
+		if err != nil {
+			fmt.Printf("Error mmap'ing file: %q\n", err.Error())
+			os.Exit(1)
+		}
+		files = append(files, FileInfo{filename: path.Base(file_path), bytes: mm})
 	}
 
 	err = termbox.Init()
@@ -113,5 +123,5 @@ func main() {
 	style := defaultStyle()
 	termbox.SetOutputMode(outputMode)
 
-	mainLoop(mm, style)
+	mainLoop(files, style)
 }

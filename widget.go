@@ -6,7 +6,7 @@ import (
 
 type Widget interface {
 	sizeForLayout(layout Layout) Size
-	drawAtPoint(screen *DataScreen, layout Layout, point Point, style Style) Size
+	drawAtPoint(tab *DataTab, layout Layout, point Point, style Style) Size
 }
 
 type WidgetSlice []Widget
@@ -68,17 +68,17 @@ func heightOfWidgets(show_date bool) int {
 	return layout.widget_size.height
 }
 
-func drawWidgets(screen *DataScreen, style Style) Layout {
+func drawWidgets(tab *DataTab, style Style) Layout {
 	widgets := listOfWidgets()
 
 	width, height := termbox.Size()
 	padding := 2
-	layout := widgets.layout(screen.show_date)
+	layout := widgets.layout(tab.show_date)
 	start_x := (width-2*padding-layout.width())/2 + padding
 	start_y := height - layout.widget_size.height
 	point := Point{start_x, start_y}
 	for _, widget := range widgets {
-		widget_size := widget.drawAtPoint(screen, layout, point, style)
+		widget_size := widget.drawAtPoint(tab, layout, point, style)
 		point.x += widget_size.width
 		if widget_size.width > 0 {
 			point.x += layout.spacing

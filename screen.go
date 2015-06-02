@@ -15,9 +15,9 @@ const (
 	EXIT_SCREEN_INDEX
 )
 
-func defaultScreensForData(bytes []byte) []Screen {
+func defaultScreensForFiles(files []FileInfo) []Screen {
 	data_screen := DataScreen{}
-	data_screen.initializeWithBytes(bytes)
+	data_screen.initializeWithFiles(files)
 
 	about_screen := AboutScreen(0)
 	palette_screen := PaletteScreen(0)
