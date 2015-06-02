@@ -5,6 +5,18 @@ import "github.com/nsf/termbox-go"
 const NAME_PADDING = 2
 const TAB_MARGIN = 3
 
+const THICK_LINE = "━"
+const RIGHT_JOINT = "┕"
+const LEFT_JOINT = "┙"
+const DOUBLE_JOINT = "┷"
+
+/*
+const THICK_LINE = "═"
+const RIGHT_JOINT = "╘"
+const LEFT_JOINT = "╛"
+const DOUBLE_JOINT = "╧"
+*/
+
 type TabListViewPort struct {
 	width  int
 	offset int
@@ -169,7 +181,7 @@ func (screen *DataScreen) drawScreen(style Style) {
 		bg := style.default_bg
 		x_pos := -screen.tab_view_port.offset
 		for i := 0; i < TAB_MARGIN; i++ {
-			drawStringAtPoint("━", x_pos, 2, fg, bg)
+			drawStringAtPoint(THICK_LINE, x_pos, 2, fg, bg)
 			x_pos++
 		}
 		for _, tab := range screen.tabs {
@@ -180,9 +192,9 @@ func (screen *DataScreen) drawScreen(style Style) {
 			drawStringAtPoint("╭", x_pos, 0, fg, bg)
 			drawStringAtPoint("│", x_pos, 1, fg, bg)
 			if tab == active_tab {
-				drawStringAtPoint("┙", x_pos, 2, fg, bg)
+				drawStringAtPoint(LEFT_JOINT, x_pos, 2, fg, bg)
 			} else {
-				drawStringAtPoint("┷", x_pos, 2, fg, bg)
+				drawStringAtPoint(DOUBLE_JOINT, x_pos, 2, fg, bg)
 			}
 			x_pos++
 
@@ -190,16 +202,16 @@ func (screen *DataScreen) drawScreen(style Style) {
 			for i := 0; i < 2*NAME_PADDING+nameLength; i++ {
 				drawStringAtPoint("─", x_pos, 0, fg, bg)
 				if tab != active_tab {
-					drawStringAtPoint("━", x_pos, 2, fg, bg)
+					drawStringAtPoint(THICK_LINE, x_pos, 2, fg, bg)
 				}
 				x_pos++
 			}
 			drawStringAtPoint("╮", x_pos, 0, fg, bg)
 			drawStringAtPoint("│", x_pos, 1, fg, bg)
 			if tab == active_tab {
-				drawStringAtPoint("┕", x_pos, 2, fg, bg)
+				drawStringAtPoint(RIGHT_JOINT, x_pos, 2, fg, bg)
 			} else {
-				drawStringAtPoint("┷", x_pos, 2, fg, bg)
+				drawStringAtPoint(DOUBLE_JOINT, x_pos, 2, fg, bg)
 			}
 			x_pos++
 		}
@@ -210,7 +222,7 @@ func (screen *DataScreen) drawScreen(style Style) {
 			drawStringAtPoint("(q)uit", width-10, 1, fg, bg)
 		}
 		for x_pos < width {
-			drawStringAtPoint("━", x_pos, 2, fg, bg)
+			drawStringAtPoint(THICK_LINE, x_pos, 2, fg, bg)
 			x_pos++
 		}
 		active_tab.drawTab(style, 3)
