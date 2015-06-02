@@ -29,6 +29,6 @@ Full list of commands:
 <tr><td>$</td><td>line end</td><td>u</td><td>toggle signedness</td><td>ctrl-y</td><td>scroll up</td></tr>                                                              
 <tr><td>g</td><td>file start</td><td>D</td><td>date decoding</td><td>ctrl-f</td><td>page down</td></tr>                                                                
 <tr><td>G</td><td>file end</td><td>@</td><td>set date epoch</td><td>ctrl-b</td><td>page up</td></tr>                                                                   
-<tr><td>:</td><td>jump to byte</td><td>/</td><td>search file</td><td>?</td><td>this screen</td></tr>                                                                   
+<tr><td>:</td><td>jump to byte</td><td>/</td><td>search file</td><td>?</td><td>help screen</td></tr>                                                                   
 <tr><td>x</td><td>toggle hex</td><td>n</td><td>next match</td><td>q</td><td>quit program</td></tr>  
 </table>

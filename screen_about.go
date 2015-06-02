@@ -164,12 +164,14 @@ func (screen *AboutScreen) drawScreen(style Style) {
 		for i := 0; i < len(commands1); i++ {
 			x_pos = 0
 			x_pos += drawStringAtPoint("<tr>", x_pos, y_pos, style.default_fg, style.default_bg)
-			x_pos += drawStringAtPoint(fmt.Sprintf("<td>%s</td>", commands1[i].key), x_pos, y_pos, style.default_fg, style.default_bg)
-			x_pos += drawStringAtPoint(fmt.Sprintf("<td>%s</td>", commands1[i].description), x_pos, y_pos, style.default_fg, style.default_bg)
-			x_pos += drawStringAtPoint(fmt.Sprintf("<td>%s</td>", commands2[i].key), x_pos, y_pos, style.default_fg, style.default_bg)
-			x_pos += drawStringAtPoint(fmt.Sprintf("<td>%s</td>", commands2[i].description), x_pos, y_pos, style.default_fg, style.default_bg)
-			x_pos += drawStringAtPoint(fmt.Sprintf("<td>%s</td>", commands3[i].key), x_pos, y_pos, style.default_fg, style.default_bg)
-			x_pos += drawStringAtPoint(fmt.Sprintf("<td>%s</td>", commands3[i].description), x_pos, y_pos, style.default_fg, style.default_bg)
+			for _, cmd := range [...]Command{commands1[i], commands2[i], commands3[i]} {
+				x_pos += drawStringAtPoint(fmt.Sprintf("<td>%s</td>", cmd.key), x_pos, y_pos, style.default_fg, style.default_bg)
+				if cmd.description == "this screen" {
+					x_pos += drawStringAtPoint(fmt.Sprintf("<td>%s</td>", "help screen"), x_pos, y_pos, style.default_fg, style.default_bg)
+				} else {
+					x_pos += drawStringAtPoint(fmt.Sprintf("<td>%s</td>", cmd.description), x_pos, y_pos, style.default_fg, style.default_bg)
+				}
+			}
 			x_pos += drawStringAtPoint("</tr>", x_pos, y_pos, style.default_fg, style.default_bg)
 			y_pos++
 		}
