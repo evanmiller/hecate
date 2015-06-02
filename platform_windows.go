@@ -16,8 +16,8 @@ func defaultStyle() Style {
 	style.int_fg = termbox.ColorCyan
 	style.bit_fg = termbox.ColorCyan
 	style.space_rune_fg = termbox.ColorWhite
-	style.selected_option_bg = termbox.ColorGray
-	style.search_progress_fg = termbox.ColorBlue
+	style.selected_option_bg = termbox.ColorBlue
+	style.search_progress_fg = termbox.ColorCyan
 
 	style.text_cursor_hex_bg = termbox.ColorRed
 	style.bit_cursor_hex_bg = termbox.ColorCyan

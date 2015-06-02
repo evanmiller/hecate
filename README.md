@@ -7,10 +7,11 @@ Usage:
     $GOPATH/bin/hecate /path/to/binary/file
 
 Hecate is not actually a hex editor, only a viewer. It is a terminal program
-(written in Go) with tabs, binary searching, mmap support, and Vim-like controls.
-Place the cursor over some bytes and choose a mode (**t** for text, **p** for a
-bit pattern, **i** for an integer, **f** for a floating point) to see what
-those bytes represent. Toggle endianness with **e** and signedness with **u**.
+(written in Go) with tabbed browsing, large-file support, full-file searching,
+and Vim-like controls.  Place the cursor over some bytes and choose a mode
+(**t** for text, **p** for a bit pattern, **i** for an integer, **f** for a
+floating point) to see what those bytes represent. Toggle endianness with **e**
+and signedness with **u**.
 
 Screenshot:
 ![Hecate screenshot](http://www.evanmiller.org/images/hecate-screenshot1.png)
