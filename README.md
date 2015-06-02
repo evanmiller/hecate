@@ -4,7 +4,7 @@ The Hex Editor From Hell!
 Usage:
 
     go get -u github.com/evanmiller/hecate
-    $GOPATH/bin/hecate /path/to/binary/file
+    $GOPATH/bin/hecate file1 [file2 [...]]
 
 Hecate is not actually a hex editor, only a viewer. It is a terminal program
 (written in Go) with tabbed browsing, large-file support, full-file searching,
