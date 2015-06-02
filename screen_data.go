@@ -92,6 +92,9 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event, output chan<- int)
 	} else if event.Key == termbox.KeyTab && screen.show_tabs {
 		screen.active_tab = (screen.active_tab + 1) % len(screen.tabs)
 		return DATA_SCREEN_INDEX
+	} else if event.Ch == '`' {
+		screen.active_tab = (screen.active_tab + len(screen.tabs) - 1) % len(screen.tabs)
+		return DATA_SCREEN_INDEX
 	}
 	return active_tab.handleKeyEvent(event)
 }

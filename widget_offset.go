@@ -66,7 +66,7 @@ func (widget OffsetWidget) drawAtPoint(tab *DataTab, layout Layout, point Point,
 		}
 		x_pos += 7
 		x_pos += drawStringAtPoint("]", x_pos, y_pos, fg, bg)
-		drawStringAtPoint("^D to stop", x_pos+2, y_pos, fg, bg)
+		drawStringAtPoint("<Esc> cancel", x_pos+2, y_pos, fg, bg)
 	} else {
 		drawStringAtPoint(fmt.Sprintf("  Type :  %s", cursor.c_type()), point.x, y_pos, fg, bg)
 	}

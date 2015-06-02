@@ -154,13 +154,13 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 		if new_pos >= 0 {
 			tab.cursor.pos = new_pos
 		}
-	} else if event.Ch == 'q' || event.Key == termbox.KeyEsc || event.Key == termbox.KeyCtrlC {
+	} else if event.Ch == 'q' || event.Key == termbox.KeyCtrlC {
 		if tab.is_searching {
 			tab.search_quit_channel <- true
 		} else {
 			return EXIT_SCREEN_INDEX
 		}
-	} else if event.Key == termbox.KeyCtrlD {
+	} else if event.Key == termbox.KeyEsc {
 		if tab.is_searching {
 			tab.search_quit_channel <- true
 		}
