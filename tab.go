@@ -76,6 +76,7 @@ func (tab *DataTab) receiveEvents(output chan<- int) {
 			output <- DATA_SCREEN_INDEX
 		case search_result := <-tab.search_result_channel:
 			tab.is_searching = false
+			tab.search_progress = 0.0
 			if search_result != nil {
 				tab.cursor = *search_result
 				tab.hilite = tab.cursor.highlightRange(tab.bytes)
