@@ -45,7 +45,12 @@ func mainLoop(files []FileInfo, style Style) {
 
 	go func() {
 		for {
-			main_key_channel <- termbox.PollEvent()
+			event := termbox.PollEvent()
+			if event.Type == termbox.EventInterrupt {
+				break
+			} else {
+				main_key_channel <- event
+			}
 		}
 	}()
 
@@ -73,6 +78,7 @@ func mainLoop(files []FileInfo, style Style) {
 			for _, c := range screen_quit_channels {
 				c <- true
 			}
+			termbox.Interrupt()
 			break
 		}
 	}
