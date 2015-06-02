@@ -7,9 +7,10 @@ Usage:
     $GOPATH/bin/hecate /path/to/binary/file
 
 Hecate is not actually a hex editor, only a viewer. It is a terminal program
-written in Go with Vim-like controls; place the cursor over some bytes and
-choose a mode (**t** for text, **p** for a bit pattern, **i** for an integer,
-**f** for a floating point) to see what those bytes represent.
+(written in Go) with tabs, binary searching, mmap support, and Vim-like controls.
+Place the cursor over some bytes and choose a mode (**t** for text, **p** for a
+bit pattern, **i** for an integer, **f** for a floating point) to see what
+those bytes represent. Toggle endianness with **e** and signedness with **u**.
 
 Screenshot:
 ![Hecate screenshot](http://www.evanmiller.org/images/hecate-screenshot1.png)
@@ -30,6 +31,9 @@ Full list of commands:
 
 <tr><td>/</td><td>search file</td> <td>D</td><td>date decoding</td></tr>
 <tr><td>n</td><td>next match</td> <td>@</td><td>set date epoch</td></tr>
+
+<tr><td>T</td><td>show tabs</td> <td>ctrl-t</td><td>new tab</td></tr>
+<tr><td>tab</td><td>cycle tabs</td> <td>ctrl-w</td><td>close tab</td></tr>
 
 <tr><td>ctrl-f</td><td>page down</td> <td>:</td><td>jump to offset</td></tr>
 <tr><td>ctrl-b</td><td>page up</td> <td>x</td><td>toggle hex offset</td></tr>
