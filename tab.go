@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/nsf/termbox-go"
 )
@@ -46,7 +47,10 @@ type DataTab struct {
 	field_editor            *FieldEditor
 }
 
-func NewDataTab(file FileInfo, cursor Cursor) DataTab {
+func NewDataTab(file FileInfo) DataTab {
+	cursor := Cursor{int_length: 4, fp_length: 4, mode: StringMode,
+		epoch_unit: SecondsSinceEpoch, epoch_time: time.Unix(0, 0).UTC()}
+
 	return DataTab{
 		search_result_channel:   make(chan *Cursor),
 		search_quit_channel:     make(chan bool),
