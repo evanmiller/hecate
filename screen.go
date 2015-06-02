@@ -19,7 +19,7 @@ func defaultScreensForFiles(files []FileInfo) []Screen {
 	data_screen := DataScreen{}
 	data_screen.initializeWithFiles(files)
 
-	about_screen := AboutScreen(0)
+	about_screen := AboutScreen{}
 	palette_screen := PaletteScreen(0)
 	screens := [...]Screen{
 		&about_screen,

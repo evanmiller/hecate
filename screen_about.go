@@ -11,7 +11,9 @@ type Command struct {
 	description string
 }
 
-type AboutScreen int
+type AboutScreen struct {
+	show_html bool
+}
 
 func drawCommandsAtPoint(commands []Command, x int, y int, style Style) {
 	x_pos, y_pos := x, y
@@ -35,8 +37,13 @@ func (screen *AboutScreen) receiveEvents(input <-chan termbox.Event, output chan
 	for {
 		do_quit := false
 		select {
-		case <-input:
-			output <- DATA_SCREEN_INDEX
+		case event := <-input:
+			if event.Key == termbox.KeyCtrlR {
+				screen.show_html = !screen.show_html
+				output <- ABOUT_SCREEN_INDEX
+			} else {
+				output <- DATA_SCREEN_INDEX
+			}
 		case <-quit:
 			do_quit = true
 		}
@@ -151,7 +158,26 @@ func (screen *AboutScreen) drawScreen(style Style) {
 	x_pos = start_x
 	y_pos++
 
-	drawCommandsAtPoint(commands1[:], x_pos, y_pos+1, style)
-	drawCommandsAtPoint(commands2[:], x_pos+19, y_pos+1, style)
-	drawCommandsAtPoint(commands3[:], x_pos+42, y_pos+1, style)
+	if screen.show_html {
+		drawStringAtPoint("<table>", 0, y_pos, style.default_fg, style.default_bg)
+		y_pos++
+		for i := 0; i < len(commands1); i++ {
+			x_pos = 0
+			x_pos += drawStringAtPoint("<tr>", x_pos, y_pos, style.default_fg, style.default_bg)
+			x_pos += drawStringAtPoint(fmt.Sprintf("<td>%s</td>", commands1[i].key), x_pos, y_pos, style.default_fg, style.default_bg)
+			x_pos += drawStringAtPoint(fmt.Sprintf("<td>%s</td>", commands1[i].description), x_pos, y_pos, style.default_fg, style.default_bg)
+			x_pos += drawStringAtPoint(fmt.Sprintf("<td>%s</td>", commands2[i].key), x_pos, y_pos, style.default_fg, style.default_bg)
+			x_pos += drawStringAtPoint(fmt.Sprintf("<td>%s</td>", commands2[i].description), x_pos, y_pos, style.default_fg, style.default_bg)
+			x_pos += drawStringAtPoint(fmt.Sprintf("<td>%s</td>", commands3[i].key), x_pos, y_pos, style.default_fg, style.default_bg)
+			x_pos += drawStringAtPoint(fmt.Sprintf("<td>%s</td>", commands3[i].description), x_pos, y_pos, style.default_fg, style.default_bg)
+			x_pos += drawStringAtPoint("</tr>", x_pos, y_pos, style.default_fg, style.default_bg)
+			y_pos++
+		}
+		drawStringAtPoint("</table>", 0, y_pos, style.default_fg, style.default_bg)
+		y_pos++
+	} else {
+		drawCommandsAtPoint(commands1[:], x_pos, y_pos+1, style)
+		drawCommandsAtPoint(commands2[:], x_pos+19, y_pos+1, style)
+		drawCommandsAtPoint(commands3[:], x_pos+42, y_pos+1, style)
+	}
 }
