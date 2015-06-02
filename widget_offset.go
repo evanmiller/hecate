@@ -32,7 +32,9 @@ func (widget OffsetWidget) drawAtPoint(tab *DataTab, layout Layout, point Point,
 			drawStringAtPoint(tab.prev_search, x_pos+2, y_pos, fg, bg)
 		}
 	} else if cursor.hex_mode {
-		drawStringAtPoint(fmt.Sprintf("Offset(:)  0x%x", cursor.pos), point.x, y_pos, fg, bg)
+		last_pos := len(tab.bytes) - 1
+		last_pos_len := len(fmt.Sprintf("%x", last_pos))
+		drawStringAtPoint(fmt.Sprintf("Offset(:)  0x%0[2]*[1]x", cursor.pos, last_pos_len), point.x, y_pos, fg, bg)
 	} else {
 		drawStringAtPoint(fmt.Sprintf("Offset(:)  %d", cursor.pos), point.x, y_pos, fg, bg)
 	}
