@@ -21,9 +21,9 @@ func (screen *DataScreen) initializeWithFiles(files []FileInfo) {
 
 func (screen *DataScreen) receiveEvents(input <-chan termbox.Event, output chan<- int, quit <-chan bool) {
 	for _, t := range screen.tabs {
-		go func() {
-			t.receiveEvents(output)
-		}()
+		go func(tab *DataTab) {
+			tab.receiveEvents(output)
+		}(t)
 	}
 
 	for {
