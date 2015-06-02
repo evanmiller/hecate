@@ -79,14 +79,14 @@ func (screen *AboutScreen) drawScreen(style Style) {
 		{"b", "left 4 bytes"},
 		{"w", "right 4 bytes"},
 
-		{"g", "first byte"},
-		{"G", "last byte"},
+		{"^", "line start"},
+		{"$", "line end"},
+
+		{"g", "file start"},
+		{"G", "file end"},
 
 		{":", "jump to byte"},
 		{"x", "toggle hex"},
-
-		{"/", "search file"},
-		{"n", "next match"},
 	}
 
 	commands2 := [...]Command{
@@ -95,17 +95,17 @@ func (screen *AboutScreen) drawScreen(style Style) {
 		{"i", "integer mode"},
 		{"f", "float mode"},
 
-		{"e", "toggle endianness"},
-		{"u", "toggle signedness"},
-
 		{"H", "shrink cursor"},
 		{"L", "grow cursor"},
+
+		{"e", "toggle endianness"},
+		{"u", "toggle signedness"},
 
 		{"D", "date decoding"},
 		{"@", "set date epoch"},
 
-		{"?", "this screen"},
-		{"q", "quit program"},
+		{"/", "search file"},
+		{"n", "next match"},
 	}
 
 	commands3 := [...]Command{
@@ -122,6 +122,9 @@ func (screen *AboutScreen) drawScreen(style Style) {
 
 		{"ctrl-f", "page down"},
 		{"ctrl-b", "page up"},
+
+		{"?", "this screen"},
+		{"q", "quit program"},
 	}
 
 	first_line := template[0]
