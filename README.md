@@ -19,7 +19,7 @@ Screenshot:
 Full list of commands:
 
 <table>
-<tr><td>h</td><td>left</td><td>ctrl-j</td><td>show tabs</td></tr>                                                                          
+<tr><td>h</td><td>left</td><td>t</td><td>text mode</td><td>ctrl-j</td><td>show tabs</td></tr>                                                                          
 <tr><td>j</td><td>down</td><td>p</td><td>bit pattern mode</td><td>ctrl-k</td><td>hide tabs</td></tr>                                                                   
 <tr><td>k</td><td>up</td><td>i</td><td>integer mode</td><td>ctrl-t</td><td>new tab</td></tr>                                                                           
 <tr><td>l</td><td>right</td><td>f</td><td>float mode</td><td>ctrl-w</td><td>close tab</td></tr>                                                                        
