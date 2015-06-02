@@ -2,6 +2,9 @@ package main
 
 import "github.com/nsf/termbox-go"
 
+const NAME_PADDING = 2
+const TAB_MARGIN = 3
+
 type DataScreen struct {
 	tabs       []*DataTab
 	active_tab int
@@ -51,8 +54,11 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event, output chan<- int)
 		return PALETTE_SCREEN_INDEX
 	} else if event.Ch == '?' { // about
 		return ABOUT_SCREEN_INDEX
-	} else if event.Ch == 'T' {
-		screen.show_tabs = !screen.show_tabs
+	} else if event.Key == termbox.KeyCtrlJ {
+		screen.show_tabs = true
+		return DATA_SCREEN_INDEX
+	} else if event.Key == termbox.KeyCtrlK {
+		screen.show_tabs = false
 		return DATA_SCREEN_INDEX
 	} else if event.Key == termbox.KeyCtrlT {
 		var new_tabs []*DataTab
@@ -89,10 +95,10 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event, output chan<- int)
 			}
 			return DATA_SCREEN_INDEX
 		}
-	} else if event.Key == termbox.KeyTab && screen.show_tabs {
+	} else if event.Key == termbox.KeyCtrlL && screen.show_tabs {
 		screen.active_tab = (screen.active_tab + 1) % len(screen.tabs)
 		return DATA_SCREEN_INDEX
-	} else if event.Ch == '`' {
+	} else if event.Key == termbox.KeyCtrlH && screen.show_tabs {
 		screen.active_tab = (screen.active_tab + len(screen.tabs) - 1) % len(screen.tabs)
 		return DATA_SCREEN_INDEX
 	}
@@ -118,7 +124,7 @@ func (screen *DataScreen) drawScreen(style Style) {
 		fg := style.default_fg
 		bg := style.default_bg
 		x_pos := 0
-		for i := 0; i < 4; i++ {
+		for i := 0; i < TAB_MARGIN; i++ {
 			drawStringAtPoint("━", x_pos, 2, fg, bg)
 			x_pos++
 		}
@@ -136,8 +142,8 @@ func (screen *DataScreen) drawScreen(style Style) {
 			}
 			x_pos++
 
-			nameLength := drawStringAtPoint(tab.filename, x_pos+2, 1, name_fg, bg)
-			for i := 0; i < 2+nameLength+2; i++ {
+			nameLength := drawStringAtPoint(tab.filename, x_pos+NAME_PADDING, 1, name_fg, bg)
+			for i := 0; i < 2*NAME_PADDING+nameLength; i++ {
 				drawStringAtPoint("─", x_pos, 0, fg, bg)
 				if tab != active_tab {
 					drawStringAtPoint("━", x_pos, 2, fg, bg)

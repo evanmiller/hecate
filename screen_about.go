@@ -15,9 +15,15 @@ type AboutScreen int
 
 func drawCommandsAtPoint(commands []Command, x int, y int, style Style) {
 	x_pos, y_pos := x, y
+	longest_key_len := 1
+	for _, cmd := range commands {
+		if len(cmd.key) > longest_key_len {
+			longest_key_len = len(cmd.key)
+		}
+	}
 	for index, cmd := range commands {
-		drawStringAtPoint(fmt.Sprintf("%6s", cmd.key), x_pos, y_pos, style.default_fg, style.default_bg)
-		drawStringAtPoint(cmd.description, x_pos+8, y_pos, style.default_fg, style.default_bg)
+		drawStringAtPoint(fmt.Sprintf("%[2]*[1]s", cmd.key, longest_key_len), x_pos, y_pos, style.default_fg, style.default_bg)
+		drawStringAtPoint(cmd.description, x_pos+longest_key_len+2, y_pos, style.default_fg, style.default_bg)
 		y_pos++
 		if index > 2 && index%2 == 1 {
 			y_pos++
@@ -76,24 +82,18 @@ func (screen *AboutScreen) drawScreen(style Style) {
 		{"g", "first byte"},
 		{"G", "last byte"},
 
-		{"T", "show tabs"},
-		{"<tab>", "cycle tabs"},
+		{":", "jump to byte"},
+		{"x", "toggle hex"},
 
-		{"ctrl-t", "new tab"},
-		{"ctrl-w", "close tab"},
-
-		{"ctrl-e", "scroll down"},
-		{"ctrl-y", "scroll up"},
-
-		{"ctrl-f", "page down"},
-		{"ctrl-b", "page up"},
+		{"/", "search file"},
+		{"n", "next match"},
 	}
 
 	commands2 := [...]Command{
 		{"t", "text mode"},
 		{"p", "bit pattern mode"},
 		{"i", "integer mode"},
-		{"f", "floating-point mode"},
+		{"f", "float mode"},
 
 		{"e", "toggle endianness"},
 		{"u", "toggle signedness"},
@@ -104,14 +104,24 @@ func (screen *AboutScreen) drawScreen(style Style) {
 		{"D", "date decoding"},
 		{"@", "set date epoch"},
 
-		{":", "jump to offset"},
-		{"x", "toggle hex offset"},
-
-		{"/", "search file"},
-		{"n", "next match"},
-
 		{"?", "this screen"},
 		{"q", "quit program"},
+	}
+
+	commands3 := [...]Command{
+		{"ctrl-j", "show tabs"},
+		{"ctrl-k", "hide tabs"},
+		{"ctrl-t", "new tab"},
+		{"ctrl-w", "close tab"},
+
+		{"ctrl-h", "previous tab"},
+		{"ctrl-l", "next tab"},
+
+		{"ctrl-e", "scroll down"},
+		{"ctrl-y", "scroll up"},
+
+		{"ctrl-f", "page down"},
+		{"ctrl-b", "page up"},
 	}
 
 	first_line := template[0]
@@ -135,9 +145,10 @@ func (screen *AboutScreen) drawScreen(style Style) {
 		}
 		y_pos++
 	}
-	x_pos = start_x + 3
+	x_pos = start_x
 	y_pos++
 
 	drawCommandsAtPoint(commands1[:], x_pos, y_pos+1, style)
-	drawCommandsAtPoint(commands2[:], x_pos+20, y_pos+1, style)
+	drawCommandsAtPoint(commands2[:], x_pos+19, y_pos+1, style)
+	drawCommandsAtPoint(commands3[:], x_pos+42, y_pos+1, style)
 }
