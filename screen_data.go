@@ -81,20 +81,23 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event, output chan<- int)
 		screen.show_tabs = true
 		return DATA_SCREEN_INDEX
 	} else if event.Key == termbox.KeyCtrlW {
-		if len(screen.tabs) > 1 {
-			var new_tabs []*DataTab
-			for _, old_tab := range screen.tabs {
-				if old_tab != active_tab {
-					new_tabs = append(new_tabs, old_tab)
-				}
-			}
-			active_tab.quit_channel <- true
-			screen.tabs = new_tabs
-			if screen.active_tab >= len(new_tabs) {
-				screen.active_tab = len(new_tabs) - 1
-			}
-			return DATA_SCREEN_INDEX
+		active_tab.quit_channel <- true
+
+		if len(screen.tabs) == 1 {
+			return EXIT_SCREEN_INDEX
 		}
+
+		var new_tabs []*DataTab
+		for _, old_tab := range screen.tabs {
+			if old_tab != active_tab {
+				new_tabs = append(new_tabs, old_tab)
+			}
+		}
+		screen.tabs = new_tabs
+		if screen.active_tab >= len(new_tabs) {
+			screen.active_tab = len(new_tabs) - 1
+		}
+		return DATA_SCREEN_INDEX
 	} else if event.Key == termbox.KeyCtrlL && screen.show_tabs {
 		screen.active_tab = (screen.active_tab + 1) % len(screen.tabs)
 		return DATA_SCREEN_INDEX
