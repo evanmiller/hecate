@@ -116,7 +116,7 @@ func (screen *AboutScreen) drawScreen(style Style) {
 
 	first_line := template[0]
 	start_x := (width - len(first_line)) / 2
-	start_y := (height - len(template) - 2 - len(commands2)/2*3) / 2
+	start_y := (height-len(template)-2-len(commands2)/2*3-1)/2 + 1
 	x_pos := start_x
 	y_pos := start_y
 	for _, line := range template {

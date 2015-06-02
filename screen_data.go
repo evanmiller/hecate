@@ -16,7 +16,7 @@ func (screen *DataScreen) initializeWithFiles(files []FileInfo) {
 	}
 
 	screen.tabs = tabs
-	screen.show_tabs = len(tabs) > 1
+	screen.show_tabs = true
 }
 
 func (screen *DataScreen) receiveEvents(input <-chan termbox.Event, output chan<- int, quit <-chan bool) {
@@ -149,6 +149,12 @@ func (screen *DataScreen) drawScreen(style Style) {
 				drawStringAtPoint("┷", x_pos, 2, fg, bg)
 			}
 			x_pos++
+		}
+		if width-x_pos > 22 {
+			drawStringAtPoint("(?) help", width-20, 1, fg, bg)
+		}
+		if width-x_pos > 12 {
+			drawStringAtPoint("(q)uit", width-10, 1, fg, bg)
 		}
 		for x_pos < width {
 			drawStringAtPoint("━", x_pos, 2, fg, bg)
