@@ -5,10 +5,16 @@ import "github.com/nsf/termbox-go"
 const NAME_PADDING = 2
 const TAB_MARGIN = 3
 
+type TabListViewPort struct {
+	width  int
+	offset int
+}
+
 type DataScreen struct {
-	tabs       []*DataTab
-	active_tab int
-	show_tabs  bool
+	tabs          []*DataTab
+	tab_view_port TabListViewPort
+	active_tab    int
+	show_tabs     bool
 }
 
 func (screen *DataScreen) initializeWithFiles(files []FileInfo) {
@@ -99,10 +105,14 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event, output chan<- int)
 		}
 		return DATA_SCREEN_INDEX
 	} else if event.Key == termbox.KeyCtrlL && screen.show_tabs {
-		screen.active_tab = (screen.active_tab + 1) % len(screen.tabs)
+		if screen.active_tab < len(screen.tabs)-1 {
+			screen.active_tab++
+		}
 		return DATA_SCREEN_INDEX
 	} else if event.Key == termbox.KeyCtrlH && screen.show_tabs {
-		screen.active_tab = (screen.active_tab + len(screen.tabs) - 1) % len(screen.tabs)
+		if screen.active_tab > 0 {
+			screen.active_tab--
+		}
 		return DATA_SCREEN_INDEX
 	}
 	return active_tab.handleKeyEvent(event)
@@ -118,6 +128,37 @@ func (screen *DataScreen) performLayout() {
 			tab.performLayout(width, height)
 		}
 	}
+
+	screen.tab_view_port.width = width
+	tab_pos := TAB_MARGIN
+	active_tab_start_pos := 0
+	active_tab_name_len := 0
+	for index, tab := range screen.tabs {
+		if index == screen.active_tab {
+			active_tab_start_pos = tab_pos
+			for _ = range tab.filename {
+				active_tab_name_len++
+			}
+		}
+		tab_pos += 2 + 2*NAME_PADDING
+		for _ = range tab.filename {
+			tab_pos++
+		}
+	}
+	active_tab_end_pos := active_tab_start_pos + 2 + 2*NAME_PADDING + active_tab_name_len
+	if tab_pos+TAB_MARGIN < screen.tab_view_port.offset+width {
+		if tab_pos+TAB_MARGIN > width {
+			screen.tab_view_port.offset = tab_pos + TAB_MARGIN - width
+		} else {
+			screen.tab_view_port.offset = 0
+		}
+	}
+	if screen.tab_view_port.offset > active_tab_start_pos-TAB_MARGIN {
+		screen.tab_view_port.offset = active_tab_start_pos - TAB_MARGIN
+	}
+	if screen.tab_view_port.offset+width < active_tab_end_pos+TAB_MARGIN {
+		screen.tab_view_port.offset = active_tab_end_pos - width + TAB_MARGIN
+	}
 }
 
 func (screen *DataScreen) drawScreen(style Style) {
@@ -126,7 +167,7 @@ func (screen *DataScreen) drawScreen(style Style) {
 	if screen.show_tabs {
 		fg := style.default_fg
 		bg := style.default_bg
-		x_pos := 0
+		x_pos := -screen.tab_view_port.offset
 		for i := 0; i < TAB_MARGIN; i++ {
 			drawStringAtPoint("━", x_pos, 2, fg, bg)
 			x_pos++

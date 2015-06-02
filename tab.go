@@ -22,7 +22,7 @@ const (
 
 type EditMode int
 
-type ViewPort struct {
+type DataViewPort struct {
 	bytes_per_row  int
 	number_of_rows int
 	first_row      int
@@ -33,7 +33,7 @@ type DataTab struct {
 	bytes                   []byte
 	cursor                  Cursor
 	hilite                  ByteRange
-	view_port               ViewPort
+	view_port               DataViewPort
 	prev_mode               CursorMode
 	prev_search             string
 	edit_mode               EditMode
@@ -107,7 +107,7 @@ func (tab *DataTab) performLayout(width int, height int) {
 		tab.view_port.first_row -= tab.view_port.number_of_rows
 	}
 
-	var new_view_port ViewPort
+	var new_view_port DataViewPort
 	new_view_port.bytes_per_row = (width - 3) / 3
 	new_view_port.number_of_rows = (height - 1 - legend_height) / line_height
 	new_view_port.first_row = tab.view_port.first_row
