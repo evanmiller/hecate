@@ -46,6 +46,20 @@ type DataTab struct {
 	field_editor            *FieldEditor
 }
 
+func NewDataTab(file FileInfo, cursor Cursor) DataTab {
+	return DataTab{
+		search_result_channel:   make(chan *Cursor),
+		search_quit_channel:     make(chan bool),
+		search_progress_channel: make(chan int),
+		quit_channel:            make(chan bool, 10),
+		bytes:                   file.bytes,
+		filename:                file.filename,
+		cursor:                  cursor,
+		hilite:                  cursor.highlightRange(file.bytes),
+		prev_mode:               cursor.mode,
+	}
+}
+
 func (tab *DataTab) receiveEvents(output chan<- int) {
 	for {
 		do_quit := false

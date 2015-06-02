@@ -18,17 +18,7 @@ func (screen *DataScreen) initializeWithFiles(files []FileInfo) {
 
 	var tabs []*DataTab
 	for _, file := range files {
-		tab := DataTab{
-			search_result_channel:   make(chan *Cursor),
-			search_quit_channel:     make(chan bool),
-			search_progress_channel: make(chan int),
-			quit_channel:            make(chan bool, 10),
-			bytes:                   file.bytes,
-			filename:                file.filename,
-			cursor:                  cursor,
-			hilite:                  cursor.highlightRange(file.bytes),
-			prev_mode:               cursor.mode,
-		}
+		tab := NewDataTab(file, cursor)
 		tabs = append(tabs, &tab)
 	}
 
@@ -76,7 +66,7 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event, output chan<- int)
 		for index, old_tab := range screen.tabs {
 			new_tabs = append(new_tabs, old_tab)
 			if old_tab == active_tab {
-				tab_copy := *old_tab
+				tab_copy := NewDataTab(FileInfo{filename: old_tab.filename, bytes: old_tab.bytes}, old_tab.cursor)
 				new_tabs = append(new_tabs, &tab_copy)
 				screen.active_tab = index + 1
 				go func() {
