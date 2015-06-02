@@ -37,10 +37,10 @@ func mainLoop(files []FileInfo, style Style) {
 	}
 
 	for i, s := range screens {
-		go func(index int) {
-			s.receiveEvents(screen_key_channels[index], switch_channel,
+		go func(index int, screen Screen) {
+			screen.receiveEvents(screen_key_channels[index], switch_channel,
 				screen_quit_channels[index])
-		}(i)
+		}(i, s)
 	}
 
 	go func() {
