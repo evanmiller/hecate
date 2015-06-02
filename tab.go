@@ -42,10 +42,11 @@ type DataTab struct {
 	search_progress_channel chan int
 	search_result_channel   chan *Cursor
 	search_quit_channel     chan bool
+	quit_channel            chan bool
 	field_editor            *FieldEditor
 }
 
-func (tab *DataTab) receiveEvents(output chan<- int, quit <-chan bool) {
+func (tab *DataTab) receiveEvents(output chan<- int) {
 	for {
 		do_quit := false
 		select {
@@ -62,7 +63,7 @@ func (tab *DataTab) receiveEvents(output chan<- int, quit <-chan bool) {
 				tab.hilite = tab.cursor.highlightRange(tab.bytes)
 			}
 			output <- DATA_SCREEN_INDEX
-		case <-quit:
+		case <-tab.quit_channel:
 			do_quit = true
 		}
 		if do_quit {

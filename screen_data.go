@@ -22,11 +22,12 @@ func (screen *DataScreen) initializeWithFiles(files []FileInfo) {
 			search_result_channel:   make(chan *Cursor),
 			search_quit_channel:     make(chan bool),
 			search_progress_channel: make(chan int),
-			bytes:     file.bytes,
-			filename:  file.filename,
-			cursor:    cursor,
-			hilite:    cursor.highlightRange(file.bytes),
-			prev_mode: cursor.mode,
+			quit_channel:            make(chan bool, 10),
+			bytes:                   file.bytes,
+			filename:                file.filename,
+			cursor:                  cursor,
+			hilite:                  cursor.highlightRange(file.bytes),
+			prev_mode:               cursor.mode,
 		}
 		tabs = append(tabs, &tab)
 	}
@@ -36,35 +37,30 @@ func (screen *DataScreen) initializeWithFiles(files []FileInfo) {
 }
 
 func (screen *DataScreen) receiveEvents(input <-chan termbox.Event, output chan<- int, quit <-chan bool) {
-	var tab_quit_channels []chan bool
-	for _ = range screen.tabs {
-		quit_channel := make(chan bool, 10)
-		tab_quit_channels = append(tab_quit_channels, quit_channel)
-	}
-	for i, t := range screen.tabs {
-		go func(index int) {
-			t.receiveEvents(output, tab_quit_channels[index])
-		}(i)
+	for _, t := range screen.tabs {
+		go func() {
+			t.receiveEvents(output)
+		}()
 	}
 
 	for {
 		do_quit := false
 		select {
 		case event := <-input:
-			output <- screen.handleKeyEvent(event)
+			output <- screen.handleKeyEvent(event, output)
 		case <-quit:
 			do_quit = true
 		}
 		if do_quit {
-			for _, c := range tab_quit_channels {
-				c <- true
+			for _, t := range screen.tabs {
+				t.quit_channel <- true
 			}
 			break
 		}
 	}
 }
 
-func (screen *DataScreen) handleKeyEvent(event termbox.Event) int {
+func (screen *DataScreen) handleKeyEvent(event termbox.Event, output chan<- int) int {
 	active_tab := screen.tabs[screen.active_tab]
 	if active_tab.field_editor != nil {
 		return active_tab.handleKeyEvent(event)
@@ -75,6 +71,21 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event) int {
 	} else if event.Ch == 'T' {
 		screen.show_tabs = !screen.show_tabs
 		return DATA_SCREEN_INDEX
+	} else if event.Key == termbox.KeyCtrlT {
+		var new_tabs []*DataTab
+		for index, old_tab := range screen.tabs {
+			new_tabs = append(new_tabs, old_tab)
+			if old_tab == active_tab {
+				tab_copy := *old_tab
+				new_tabs = append(new_tabs, &tab_copy)
+				screen.active_tab = index + 1
+				go func() {
+					(&tab_copy).receiveEvents(output)
+				}()
+			}
+		}
+		screen.tabs = new_tabs
+		return DATA_SCREEN_INDEX
 	} else if event.Key == termbox.KeyCtrlW {
 		if len(screen.tabs) > 1 {
 			var new_tabs []*DataTab
@@ -83,6 +94,7 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event) int {
 					new_tabs = append(new_tabs, old_tab)
 				}
 			}
+			active_tab.quit_channel <- true
 			screen.tabs = new_tabs
 			if screen.active_tab >= len(new_tabs) {
 				screen.active_tab = len(new_tabs) - 1

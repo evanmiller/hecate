@@ -76,8 +76,11 @@ func (screen *AboutScreen) drawScreen(style Style) {
 		{"g", "first byte"},
 		{"G", "last byte"},
 
-		{"/", "search file"},
-		{"n", "next match"},
+		{"T", "show tabs"},
+		{"<tab>", "cycle tabs"},
+
+		{"ctrl-t", "new tab"},
+		{"ctrl-w", "close tab"},
 
 		{"ctrl-e", "scroll down"},
 		{"ctrl-y", "scroll up"},
@@ -98,11 +101,14 @@ func (screen *AboutScreen) drawScreen(style Style) {
 		{"H", "shrink cursor"},
 		{"L", "grow cursor"},
 
+		{"D", "date decoding"},
+		{"@", "set date epoch"},
+
 		{":", "jump to offset"},
 		{"x", "toggle hex offset"},
 
-		{"D", "date decoding"},
-		{"@", "set date epoch"},
+		{"/", "search file"},
+		{"n", "next match"},
 
 		{"?", "this screen"},
 		{"q", "quit program"},
