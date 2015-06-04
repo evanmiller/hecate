@@ -133,7 +133,7 @@ func (widget CursorWidget) drawAtPoint(tab *DataTab, layout Layout, point Point,
 	}
 	if pressure < 6 {
 		x_pos += 4
-		if cursor.mode == IntegerMode || cursor.mode == FloatingPointMode {
+		if cursor.mode != StringMode {
 			x_pos += drawStringAtPoint("Size:", x_pos, y_pos, fg, bg)
 			if cursor.length() > cursor.minimumLength() {
 				x_pos += drawStringAtPoint(" ←H", x_pos, y_pos, fg, bg)
