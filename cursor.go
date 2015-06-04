@@ -15,6 +15,8 @@ const MAX_INTEGER_WIDTH = 8
 const MIN_INTEGER_WIDTH = 1
 const MAX_FLOATING_POINT_WIDTH = 8
 const MIN_FLOATING_POINT_WIDTH = 4
+const MAX_BIT_PATTERN_WIDTH = 2
+const MIN_BIT_PATTERN_WIDTH = 1
 
 const (
 	StringMode CursorMode = iota + 1
@@ -37,6 +39,7 @@ type Cursor struct {
 	pos        int
 	int_length int
 	fp_length  int
+	bit_length int
 	mode       CursorMode
 	unsigned   bool
 	big_endian bool
@@ -73,6 +76,9 @@ func (cursor *Cursor) length() int {
 	if cursor.mode == FloatingPointMode {
 		return cursor.fp_length
 	}
+	if cursor.mode == BitPatternMode {
+		return cursor.bit_length
+	}
 	return 1
 }
 
@@ -82,6 +88,9 @@ func (cursor *Cursor) maximumLength() int {
 	}
 	if cursor.mode == FloatingPointMode {
 		return MAX_FLOATING_POINT_WIDTH
+	}
+	if cursor.mode == BitPatternMode {
+		return MAX_BIT_PATTERN_WIDTH
 	}
 	return 1
 }
@@ -93,7 +102,34 @@ func (cursor *Cursor) minimumLength() int {
 	if cursor.mode == FloatingPointMode {
 		return MIN_FLOATING_POINT_WIDTH
 	}
+	if cursor.mode == BitPatternMode {
+		return MIN_BIT_PATTERN_WIDTH
+	}
 	return 1
+}
+
+func (cursor *Cursor) grow() {
+	if cursor.length() < cursor.maximumLength() {
+		if cursor.mode == IntegerMode {
+			cursor.int_length *= 2
+		} else if cursor.mode == FloatingPointMode {
+			cursor.fp_length *= 2
+		} else if cursor.mode == BitPatternMode {
+			cursor.bit_length *= 2
+		}
+	}
+}
+
+func (cursor *Cursor) shrink() {
+	if cursor.length() > cursor.minimumLength() {
+		if cursor.mode == IntegerMode {
+			cursor.int_length /= 2
+		} else if cursor.mode == FloatingPointMode {
+			cursor.fp_length /= 2
+		} else if cursor.mode == BitPatternMode {
+			cursor.bit_length /= 2
+		}
+	}
 }
 
 func (cursor *Cursor) color(style Style) termbox.Attribute {

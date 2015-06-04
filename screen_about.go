@@ -42,6 +42,7 @@ func (screen *AboutScreen) receiveEvents(input <-chan termbox.Event, output chan
 				screen.show_html = !screen.show_html
 				output <- ABOUT_SCREEN_INDEX
 			} else {
+				screen.show_html = false
 				output <- DATA_SCREEN_INDEX
 			}
 		case <-quit:

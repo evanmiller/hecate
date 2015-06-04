@@ -48,7 +48,7 @@ type DataTab struct {
 }
 
 func NewDataTab(file FileInfo) DataTab {
-	cursor := Cursor{int_length: 4, fp_length: 4, mode: StringMode,
+	cursor := Cursor{int_length: 4, fp_length: 4, bit_length: 1, mode: StringMode,
 		epoch_unit: SecondsSinceEpoch, epoch_time: time.Unix(0, 0).UTC()}
 
 	return DataTab{
@@ -243,22 +243,10 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 		if tab.cursor.mode == IntegerMode || tab.cursor.mode == FloatingPointMode {
 			tab.cursor.big_endian = !tab.cursor.big_endian
 		}
-	} else if event.Ch == 'H' { /* shorten */
-		if tab.cursor.length() > tab.cursor.minimumLength() {
-			if tab.cursor.mode == IntegerMode {
-				tab.cursor.int_length /= 2
-			} else if tab.cursor.mode == FloatingPointMode {
-				tab.cursor.fp_length /= 2
-			}
-		}
-	} else if event.Ch == 'L' { /* lengthen */
-		if tab.cursor.length() < tab.cursor.maximumLength() {
-			if tab.cursor.mode == IntegerMode {
-				tab.cursor.int_length *= 2
-			} else if tab.cursor.mode == FloatingPointMode {
-				tab.cursor.fp_length *= 2
-			}
-		}
+	} else if event.Ch == 'H' {
+		tab.cursor.shrink()
+	} else if event.Ch == 'L' {
+		tab.cursor.grow()
 	} else if event.Key == termbox.KeyCtrlE { // scroll down
 		if (tab.view_port.first_row+1)*tab.view_port.bytes_per_row < len(tab.bytes) {
 			tab.view_port.first_row++
@@ -292,7 +280,8 @@ func (tab *DataTab) drawTab(style Style, vertical_offset int) {
 	view_port := tab.view_port
 
 	layout := drawWidgets(tab, style)
-	x, y := 2, 1+vertical_offset
+	start_x, start_y := 2, 1+vertical_offset
+	x, y := start_x, start_y
 	x_pad := 2
 	line_height := 3
 	width, height := termbox.Size()
@@ -302,16 +291,18 @@ func (tab *DataTab) drawTab(style Style, vertical_offset int) {
 
 	y -= line_height
 
+	cursor_x := x
+	cursor_y := y
+	cursor_length := cursor.length()
 	start := view_port.first_row * view_port.bytes_per_row
 	end := start + view_port.number_of_rows*view_port.bytes_per_row
+	rune_bg := style.default_bg
 	for index := start; index < end && index < len(tab.bytes); index++ {
 		b := tab.bytes[index]
 		hex_fg := style.default_fg
 		hex_bg := style.default_bg
 		code_fg := style.space_rune_fg
 		rune_fg := style.rune_fg
-		rune_bg := style.default_bg
-		cursor_length := cursor.length()
 		if index%view_port.bytes_per_row == 0 {
 			x = x_pad
 			y += line_height
@@ -346,39 +337,65 @@ func (tab *DataTab) drawTab(style Style, vertical_offset int) {
 			} else {
 				termbox.SetCell(x, y+1, ' ', 0, rune_bg)
 			}
-		} else if cursor.mode == BitPatternMode {
-			for i := 0; i < 8; i++ {
-				if b&(1<<uint8(7-i)) > 0 {
-					termbox.SetCell(x-1+(i%4), y+1+i/4, '●', style.bit_fg, rune_bg)
-				} else {
-					termbox.SetCell(x-1+(i%4), y+1+i/4, '○', style.bit_fg, rune_bg)
-				}
-			}
 		} else if index == cursor.pos {
-			total_length := cursor_length*3 + 1
-			str := cursor.formatBytesAsNumber(tab.bytes[cursor.pos : cursor.pos+cursor_length])
-			x_copy := x - 1
-			y_copy := y + 1
-			x_copy = x_copy + (total_length-len(str))/2
-			if x_copy > last_x {
-				x_copy = (x_copy % (width - x_pad)) + x_pad
-				y_copy += line_height
-			}
-			for _, runeValue := range str {
-				if y_copy > last_y {
-					break
-				}
-				termbox.SetCell(x_copy, y_copy, runeValue, style.int_fg, rune_bg)
-				x_copy++
-				if x_copy > last_x {
-					x_copy = x_pad
-					y_copy += line_height
-				}
-			}
+			cursor_x = x
+			cursor_y = y
 		}
 		str := fmt.Sprintf("%02x", b)
 		x += drawStringAtPoint(str, x, y, hex_fg, hex_bg)
 		x++
+	}
+
+	if cursor.mode == BitPatternMode {
+		if cursor_length == 1 || (cursor.pos+1)%view_port.bytes_per_row == 0 {
+			for j := 0; j < cursor_length; j++ {
+				b := tab.bytes[cursor.pos+j]
+				for i := 0; i < 8; i++ {
+					if b&(1<<uint8(7-i)) > 0 {
+						termbox.SetCell(cursor_x-1+(i%4), cursor_y+1+i/4, '●', style.bit_fg, rune_bg)
+					} else {
+						termbox.SetCell(cursor_x-1+(i%4), cursor_y+1+i/4, '○', style.bit_fg, rune_bg)
+					}
+				}
+				cursor_x = start_x
+				cursor_y += line_height
+				if cursor_y > last_y {
+					break
+				}
+			}
+		} else {
+			for j := 0; j < cursor_length; j++ {
+				b := tab.bytes[cursor.pos+j]
+				for i := 0; i < 8; i++ {
+					if b&(1<<uint8(7-i)) > 0 {
+						termbox.SetCell(cursor_x-1+i, cursor_y+j+1, '●', style.bit_fg, rune_bg)
+					} else {
+						termbox.SetCell(cursor_x-1+i, cursor_y+j+1, '○', style.bit_fg, rune_bg)
+					}
+				}
+			}
+		}
+	} else if cursor.mode == IntegerMode || cursor.mode == FloatingPointMode {
+		total_length := cursor_length*3 + 1
+		str := cursor.formatBytesAsNumber(tab.bytes[cursor.pos : cursor.pos+cursor_length])
+		x_copy := cursor_x - 1
+		y_copy := cursor_y + 1
+		x_copy = x_copy + (total_length-len(str))/2
+		if x_copy > last_x {
+			x_copy = (x_copy % (width - x_pad)) + x_pad
+			y_copy += line_height
+		}
+		for _, runeValue := range str {
+			if y_copy > last_y {
+				break
+			}
+			termbox.SetCell(x_copy, y_copy, runeValue, style.int_fg, rune_bg)
+			x_copy++
+			if x_copy > last_x {
+				x_copy = x_pad
+				y_copy += line_height
+			}
+		}
 	}
 
 	if tab.field_editor != nil {
