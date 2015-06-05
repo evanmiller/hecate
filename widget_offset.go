@@ -42,7 +42,7 @@ func (widget OffsetWidget) drawAtPoint(tab *DataTab, layout Layout, point Point,
 	x_pos = point.x
 	if tab.is_searching {
 		x_pos += drawStringAtPoint("[", x_pos, y_pos, fg, bg)
-		eights := [...]string{
+		eighths := [...]string{
 			" ",
 			"▏",
 			"▎",
@@ -59,9 +59,9 @@ func (widget OffsetWidget) drawAtPoint(tab *DataTab, layout Layout, point Point,
 		}
 		for i := 0; i < 7; i++ {
 			if fifty_sixths >= 8*(i+1) {
-				drawStringAtPoint(eights[8], x_pos+i, y_pos, style.search_progress_fg, bg)
+				drawStringAtPoint(eighths[8], x_pos+i, y_pos, style.search_progress_fg, bg)
 			} else if fifty_sixths > 8*i {
-				drawStringAtPoint(eights[fifty_sixths-8*i], x_pos+i, y_pos, style.search_progress_fg, bg)
+				drawStringAtPoint(eighths[fifty_sixths-8*i], x_pos+i, y_pos, style.search_progress_fg, bg)
 			}
 		}
 		x_pos += 7
