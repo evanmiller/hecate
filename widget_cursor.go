@@ -161,7 +161,8 @@ func (widget CursorWidget) drawAtPoint(tab *DataTab, layout Layout, point Point,
 			date_fg = fg
 		}
 		if pressure < 5 || pressure == 6 {
-			x_pos += drawStringAtPoint("(D)ate: ", x_pos, y_pos, date_fg, bg)
+			x_pos += drawStringAtPoint(fmt.Sprintf("%7s", "D(a)te:"), x_pos, y_pos, date_fg, bg)
+			x_pos++
 		}
 		x_pos += drawStringAtPoint(fmt.Sprintf("%10s", cursor.interpretBytesAsTime(data).Format("1/2/2006")), x_pos, y_pos, date_fg, bg)
 		x_pos++

@@ -68,14 +68,14 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event, output chan<- int)
 	active_tab := screen.tabs[screen.active_tab]
 	if active_tab.field_editor != nil {
 		return active_tab.handleKeyEvent(event)
-	} else if event.Key == termbox.KeyCtrlP { // color palette
+	} else if event.Key == termbox.KeyCtrlLsqBracket { // color palette
 		return PALETTE_SCREEN_INDEX
 	} else if event.Ch == '?' { // about
 		return ABOUT_SCREEN_INDEX
-	} else if event.Key == termbox.KeyCtrlJ {
+	} else if event.Ch == 'S' {
 		screen.show_tabs = true
 		return DATA_SCREEN_INDEX
-	} else if event.Key == termbox.KeyCtrlK {
+	} else if event.Ch == 'W' {
 		screen.show_tabs = false
 		return DATA_SCREEN_INDEX
 	} else if event.Key == termbox.KeyCtrlT {
@@ -116,12 +116,12 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event, output chan<- int)
 			screen.active_tab = len(new_tabs) - 1
 		}
 		return DATA_SCREEN_INDEX
-	} else if event.Key == termbox.KeyCtrlL && screen.show_tabs {
+	} else if event.Ch == 'D' && screen.show_tabs {
 		if screen.active_tab < len(screen.tabs)-1 {
 			screen.active_tab++
 		}
 		return DATA_SCREEN_INDEX
-	} else if event.Key == termbox.KeyCtrlH && screen.show_tabs {
+	} else if event.Ch == 'A' && screen.show_tabs {
 		if screen.active_tab > 0 {
 			screen.active_tab--
 		}

@@ -109,7 +109,7 @@ func (screen *AboutScreen) drawScreen(style Style) {
 		{"e", "toggle endianness"},
 		{"u", "toggle signedness"},
 
-		{"D", "date decoding"},
+		{"a", "date decoding"},
 		{"@", "set date epoch"},
 
 		{"/", "search file"},
@@ -117,13 +117,14 @@ func (screen *AboutScreen) drawScreen(style Style) {
 	}
 
 	commands3 := [...]Command{
-		{"ctrl-j", "show tabs"},
-		{"ctrl-k", "hide tabs"},
+		{"S", "show tabs"},
+		{"W", "hide tabs"},
+
+		{"A", "previous tab"},
+		{"D", "next tab"},
+
 		{"ctrl-t", "new tab"},
 		{"ctrl-w", "close tab"},
-
-		{"ctrl-h", "previous tab"},
-		{"ctrl-l", "next tab"},
 
 		{"ctrl-e", "scroll down"},
 		{"ctrl-y", "scroll up"},

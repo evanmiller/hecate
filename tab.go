@@ -193,7 +193,7 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 		}
 	} else if event.Ch == 'x' {
 		tab.cursor.hex_mode = !tab.cursor.hex_mode
-	} else if event.Ch == 'D' {
+	} else if event.Ch == 'a' {
 		tab.show_date = !tab.show_date
 	} else if event.Ch == 's' {
 		if tab.show_date {
