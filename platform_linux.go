@@ -1,4 +1,4 @@
-// +build !windows,!linux
+// +build linux
 
 package main
 
@@ -45,8 +45,8 @@ func defaultStyle() Style {
 	style.field_editor_fg = style.default_bg
 
 	style.space_rune = '•'
-	style.filled_bit_rune = '●'
-	style.empty_bit_rune = '○'
+	style.filled_bit_rune = '◾'
+	style.empty_bit_rune = '◽'
 
 	return style
 }

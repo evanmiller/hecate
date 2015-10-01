@@ -28,4 +28,8 @@ type Style struct {
 	field_editor_fg termbox.Attribute
 
 	about_logo_bg termbox.Attribute
+
+	filled_bit_rune rune
+	empty_bit_rune rune
+	space_rune rune
 }
