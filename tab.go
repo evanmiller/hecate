@@ -352,9 +352,9 @@ func (tab *DataTab) drawTab(style Style, vertical_offset int) {
 				b := tab.bytes[cursor.pos+j]
 				for i := 0; i < 8; i++ {
 					if b&(1<<uint8(7-i)) > 0 {
-						termbox.SetCell(cursor_x-1+(i%4), cursor_y+1+i/4, '●', style.bit_fg, rune_bg)
+						termbox.SetCell(cursor_x-1+(i%4), cursor_y+1+i/4, '◾', style.bit_fg, rune_bg)
 					} else {
-						termbox.SetCell(cursor_x-1+(i%4), cursor_y+1+i/4, '○', style.bit_fg, rune_bg)
+						termbox.SetCell(cursor_x-1+(i%4), cursor_y+1+i/4, '◽', style.bit_fg, rune_bg)
 					}
 				}
 				cursor_x = start_x
@@ -368,9 +368,9 @@ func (tab *DataTab) drawTab(style Style, vertical_offset int) {
 				b := tab.bytes[cursor.pos+j]
 				for i := 0; i < 8; i++ {
 					if b&(1<<uint8(7-i)) > 0 {
-						termbox.SetCell(cursor_x-1+i, cursor_y+j+1, '●', style.bit_fg, rune_bg)
+						termbox.SetCell(cursor_x-1+i, cursor_y+j+1, '◾', style.bit_fg, rune_bg)
 					} else {
-						termbox.SetCell(cursor_x-1+i, cursor_y+j+1, '○', style.bit_fg, rune_bg)
+						termbox.SetCell(cursor_x-1+i, cursor_y+j+1, '◽', style.bit_fg, rune_bg)
 					}
 				}
 			}
