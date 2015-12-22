@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"unicode"
 	"unicode/utf8"
 
@@ -10,10 +11,16 @@ import (
 type FieldEditor struct {
 	value      []byte
 	cursor_pos int
+	last_value string
 }
 
 func (field_editor *FieldEditor) handleKeyEvent(event termbox.Event) (string, bool) {
 	is_done := false
+
+	if event.Ch == 0 && utf8.RuneCount(field_editor.value) == 0 {
+		field_editor.value = []byte(field_editor.last_value)
+	}
+
 	if event.Key == termbox.KeyEnter {
 		is_done = true
 	} else if event.Key == termbox.KeyEsc {
@@ -44,4 +51,15 @@ func (field_editor *FieldEditor) handleKeyEvent(event termbox.Event) (string, bo
 		field_editor.cursor_pos++
 	}
 	return string(field_editor.value), is_done
+}
+
+func (field_editor *FieldEditor) drawFieldValueAtPoint(style Style, x, y int) int {
+	termbox.SetCursor(x+2+field_editor.cursor_pos, y)
+	if utf8.RuneCount(field_editor.value) > 0 || len(field_editor.last_value) == 0 {
+		return drawStringAtPoint(fmt.Sprintf(" %-10s ", field_editor.value), x+1, y,
+			style.field_editor_fg, style.field_editor_bg)
+	} else {
+		return drawStringAtPoint(fmt.Sprintf(" %-10s ", field_editor.last_value), x+1, y,
+			style.field_editor_last_fg, style.field_editor_last_bg)
+	}
 }

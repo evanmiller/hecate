@@ -184,7 +184,7 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 		if tab.is_searching {
 			tab.search_quit_channel <- true
 		}
-		tab.field_editor = new(FieldEditor)
+		tab.field_editor = &FieldEditor{ last_value: tab.prev_search }
 		tab.edit_mode = EditingSearch
 	} else if event.Ch == '@' {
 		if tab.show_date {
@@ -412,8 +412,7 @@ func (tab *DataTab) drawTab(style Style, vertical_offset int) {
 			x = (width - 10) / 2
 			y = height - widget_height - 1
 		}
-		termbox.SetCursor(x+2+tab.field_editor.cursor_pos, y)
-		drawStringAtPoint(fmt.Sprintf(" %-10s ", tab.field_editor.value), x+1, y,
-			style.field_editor_fg, style.field_editor_bg)
+
+		tab.field_editor.drawFieldValueAtPoint(style, x, y)
 	}
 }

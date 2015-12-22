@@ -44,6 +44,9 @@ func defaultStyle() Style {
 	style.field_editor_bg = style.default_fg
 	style.field_editor_fg = style.default_bg
 
+	style.field_editor_last_bg = style.rune_fg
+	style.field_editor_last_fg = style.default_fg
+
 	style.space_rune = '•'
 	style.filled_bit_rune = '●'
 	style.empty_bit_rune = '○'

@@ -27,6 +27,9 @@ type Style struct {
 	field_editor_bg termbox.Attribute
 	field_editor_fg termbox.Attribute
 
+	field_editor_last_bg termbox.Attribute
+	field_editor_last_fg termbox.Attribute
+
 	about_logo_bg termbox.Attribute
 
 	filled_bit_rune rune
