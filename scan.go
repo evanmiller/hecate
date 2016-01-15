@@ -129,3 +129,49 @@ func scanSearchString(value string, bytes []byte, cursor Cursor, quit <-chan boo
 	}
 	return &first_cursor
 }
+
+func scanEditedContent (value string, cursor Cursor) string {
+	if cursor.mode == IntegerMode {
+		var scanned_int int64
+		if n, _ := fmt.Sscanf(value, "%d", &scanned_int); n < 1 {
+			return ""
+		}
+		if cursor.int_length == 1 {
+			if cursor.unsigned {
+				return binaryStringForInteger8(uint8(scanned_int))
+			} else {
+				return binaryStringForInteger8(uint8(scanned_int))
+			}
+		} else if cursor.int_length == 2 {
+			if cursor.unsigned {
+				return binaryStringForInteger16(uint16(scanned_int), cursor.big_endian)
+			} else {
+				return binaryStringForInteger16(uint16(scanned_int), cursor.big_endian)
+			}
+		} else if cursor.int_length == 4 {
+			if cursor.unsigned {
+				return binaryStringForInteger32(uint32(scanned_int), cursor.big_endian)
+			} else {
+				return binaryStringForInteger32(uint32(scanned_int), cursor.big_endian)
+			}
+		} else if cursor.int_length == 8 {
+			if cursor.unsigned {
+				return binaryStringForInteger64(uint64(scanned_int), cursor.big_endian)
+			} else {
+				return binaryStringForInteger64(uint64(scanned_int), cursor.big_endian)
+			}
+		}
+	} else if cursor.mode == FloatingPointMode {
+		var scanned_fp float64
+		if n, _ := fmt.Sscanf(value, "%g", &scanned_fp); n < 1 {
+			return ""
+		}
+		if cursor.fp_length == 4 {
+			return binaryStringForInteger32(math.Float32bits(float32(scanned_fp)), cursor.big_endian)
+		} else if cursor.fp_length == 8 {
+			return binaryStringForInteger64(math.Float64bits(scanned_fp), cursor.big_endian)
+		}
+	}
+
+	return value
+}

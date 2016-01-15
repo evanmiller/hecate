@@ -18,6 +18,7 @@ const (
 	EditingOffset EditMode = iota + 1
 	EditingSearch
 	EditingEpoch
+	EditingContent
 )
 
 type EditMode int
@@ -148,9 +149,16 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 				} else if tab.edit_mode == EditingEpoch {
 					tab.cursor.epoch_time = scanEpoch(string_value, tab.cursor.epoch_time)
 				}
+			} else if tab.edit_mode == EditingContent {
+				copy(tab.bytes[tab.cursor.pos:], scanEditedContent(tab.field_editor.last_value, tab.cursor))
 			}
 			tab.edit_mode = 0
 			tab.field_editor = nil
+		} else if tab.edit_mode == EditingContent {
+			copy(tab.bytes[tab.cursor.pos:], scanEditedContent(string_value, tab.cursor))
+			if len(tab.field_editor.value) > 0 {
+				tab.field_editor.setValue([]rune(tab.editContent()))
+			}
 		}
 		if new_pos >= 0 {
 			tab.cursor.pos = new_pos
@@ -186,6 +194,23 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 		}
 		tab.field_editor = &FieldEditor{ last_value: tab.prev_search, width: 10 }
 		tab.edit_mode = EditingSearch
+	} else if event.Key == termbox.KeyEnter {
+		if tab.is_searching {
+			tab.search_quit_channel <- true
+		}
+		val := tab.editContent()
+		fix := tab.cursor.length()
+		if tab.cursor.mode == IntegerMode || tab.cursor.mode == FloatingPointMode {
+			fix = fix * 3 - 1
+		}
+		tab.field_editor = &FieldEditor{
+			value: []rune(val),
+			last_value: val,
+			width: tab.cursor.length() * 3 - 1,
+			fixed: fix,
+			overwrite: true,
+		}
+		tab.edit_mode = EditingContent
 	} else if event.Ch == '@' {
 		if tab.show_date {
 			tab.field_editor = new(FieldEditor)
@@ -274,6 +299,15 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 	return DATA_SCREEN_INDEX
 }
 
+func (tab *DataTab) editContent () string {
+	val := tab.bytes[tab.cursor.pos : tab.cursor.pos + tab.cursor.length()]
+	if tab.cursor.mode == IntegerMode || tab.cursor.mode == FloatingPointMode {
+		return tab.cursor.formatBytesAsNumber(val)
+	}
+
+	return string(val)
+}
+
 func (tab *DataTab) drawTab(style Style, vertical_offset int) {
 	cursor := tab.cursor
 	hilite := tab.hilite
@@ -337,7 +371,8 @@ func (tab *DataTab) drawTab(style Style, vertical_offset int) {
 			} else {
 				termbox.SetCell(x, y+1, ' ', 0, rune_bg)
 			}
-		} else if index == cursor.pos {
+		}
+		if index == cursor.pos {
 			cursor_x = x
 			cursor_y = y
 		}
@@ -399,20 +434,24 @@ func (tab *DataTab) drawTab(style Style, vertical_offset int) {
 	}
 
 	if tab.field_editor != nil {
-		widget_width := layout.width()
-		widget_height := layout.widget_size.height
-		if layout.pressure < 4 {
-			x = (width-widget_width)/2 + widget_width - 11
-			if tab.edit_mode == EditingEpoch {
-				y = height - 1
-			} else {
-				y = height - widget_height
-			}
+		if tab.edit_mode == EditingContent {
+			x = cursor_x - 1
+			y = cursor_y + 1
 		} else {
-			x = (width - 10) / 2
-			y = height - widget_height - 1
+			widget_width := layout.width()
+			widget_height := layout.widget_size.height
+			if layout.pressure < 4 {
+				x = (width-widget_width)/2 + widget_width - 10
+				if tab.edit_mode == EditingEpoch {
+					y = height - 1
+				} else {
+					y = height - widget_height
+				}
+			} else {
+				x = (width - 10) / 2 + 1
+				y = height - widget_height - 1
+			}
 		}
-
 		tab.field_editor.drawFieldValueAtPoint(style, x, y)
 	}
 }

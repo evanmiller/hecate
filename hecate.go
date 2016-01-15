@@ -86,7 +86,7 @@ func mainLoop(files []FileInfo, style Style) {
 }
 
 func openFile (filename string) (*FileInfo, error) {
-	file, err := os.Open(filename)
+	file, err := os.OpenFile(filename, os.O_RDWR, 0)
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("Error opening file: %q\n", err.Error()))
 	}
@@ -100,7 +100,7 @@ func openFile (filename string) (*FileInfo, error) {
 		return nil, errors.New(fmt.Sprintf("File %s is too short to be edited\n", filename))
 	}
 
-	mm, err := mmap.Map(file, mmap.RDONLY, 0)
+	mm, err := mmap.Map(file, mmap.RDWR, 0)
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("Error mmap'ing file: %q\n", err.Error()))
 	}
