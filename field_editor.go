@@ -12,6 +12,7 @@ type FieldEditor struct {
 	value      []byte
 	cursor_pos int
 	last_value string
+	width      int
 }
 
 func (field_editor *FieldEditor) handleKeyEvent(event termbox.Event) (string, bool) {
@@ -54,12 +55,12 @@ func (field_editor *FieldEditor) handleKeyEvent(event termbox.Event) (string, bo
 }
 
 func (field_editor *FieldEditor) drawFieldValueAtPoint(style Style, x, y int) int {
-	termbox.SetCursor(x+2+field_editor.cursor_pos, y)
+	termbox.SetCursor(x+1+field_editor.cursor_pos, y)
 	if utf8.RuneCount(field_editor.value) > 0 || len(field_editor.last_value) == 0 {
-		return drawStringAtPoint(fmt.Sprintf(" %-10s ", field_editor.value), x+1, y,
+		return drawStringAtPoint(fmt.Sprintf(" %-*s ", field_editor.width, field_editor.value), x, y,
 			style.field_editor_fg, style.field_editor_bg)
 	} else {
-		return drawStringAtPoint(fmt.Sprintf(" %-10s ", field_editor.last_value), x+1, y,
+		return drawStringAtPoint(fmt.Sprintf(" %-*s ", field_editor.width, field_editor.last_value), x, y,
 			style.field_editor_last_fg, style.field_editor_last_bg)
 	}
 }
