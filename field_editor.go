@@ -3,22 +3,30 @@ package main
 import (
 	"fmt"
 	"unicode"
-	"unicode/utf8"
 
 	"github.com/nsf/termbox-go"
 )
 
 type FieldEditor struct {
-	value      []byte
+	value      []rune
 	cursor_pos int
 	last_value string
+	width      int
+	fixed      int
+	overwrite  bool
 }
 
 func (field_editor *FieldEditor) handleKeyEvent(event termbox.Event) (string, bool) {
 	is_done := false
 
-	if event.Ch == 0 && utf8.RuneCount(field_editor.value) == 0 {
-		field_editor.value = []byte(field_editor.last_value)
+	if event.Ch == 0 && len(field_editor.value) == 0 {
+		field_editor.setValue([]rune(field_editor.last_value))
+	}
+
+	if field_editor.fixed > 0 {
+		if len(field_editor.value) > field_editor.fixed {
+			field_editor.setValue(field_editor.value[:field_editor.fixed])
+		}
 	}
 
 	if event.Key == termbox.KeyEnter {
@@ -33,33 +41,63 @@ func (field_editor *FieldEditor) handleKeyEvent(event termbox.Event) (string, bo
 	} else if event.Key == termbox.KeyArrowUp || event.Key == termbox.KeyCtrlA {
 		field_editor.cursor_pos = 0
 	} else if event.Key == termbox.KeyArrowRight {
-		if field_editor.cursor_pos < utf8.RuneCount(field_editor.value) {
+		if field_editor.cursor_pos < len(field_editor.value) {
 			field_editor.cursor_pos++
 		}
 	} else if event.Key == termbox.KeyArrowDown || event.Key == termbox.KeyCtrlE {
-		field_editor.cursor_pos = utf8.RuneCount(field_editor.value)
+		field_editor.cursor_pos = len(field_editor.value)
 	} else if event.Key == termbox.KeyCtrlH || event.Key == termbox.KeyBackspace {
-		if field_editor.cursor_pos > 0 {
-			field_editor.value = removeRuneAtIndex(field_editor.value, field_editor.cursor_pos-1)
-			field_editor.cursor_pos--
-		}
+		field_editor.delete()
+	} else if event.Key == termbox.KeyCtrlK {
+		field_editor.setValue(make([]rune, 0))
 	} else if unicode.IsPrint(event.Ch) {
-		field_editor.value = insertRuneAtIndex(field_editor.value, field_editor.cursor_pos, event.Ch)
-		field_editor.cursor_pos++
+		field_editor.insert(event.Ch)
 	} else if event.Key == termbox.KeySpace {
-		field_editor.value = insertRuneAtIndex(field_editor.value, field_editor.cursor_pos, ' ')
-		field_editor.cursor_pos++
+		field_editor.insert(' ')
 	}
 	return string(field_editor.value), is_done
 }
 
+func (field_editor *FieldEditor) setValue (value []rune) {
+	field_editor.value = value
+	if field_editor.cursor_pos > len(field_editor.value) {
+		field_editor.cursor_pos = len(field_editor.value)
+	}
+}
+
+func (field_editor *FieldEditor) insert(r rune) {
+	if field_editor.overwrite && field_editor.cursor_pos < len(field_editor.value) {
+		field_editor.value[field_editor.cursor_pos] = r
+	} else {
+		if field_editor.fixed > 0 && field_editor.cursor_pos == field_editor.fixed {
+			return
+		}
+		pos := field_editor.cursor_pos
+		field_editor.value = append(field_editor.value[:pos], append([]rune{r}, field_editor.value[pos:]...)...)
+	}
+	field_editor.cursor_pos++
+}
+
+func (field_editor *FieldEditor) delete() {
+	pos := field_editor.cursor_pos
+	if pos == 0 {
+		return
+	} else if pos < len(field_editor.value) {
+		field_editor.value = append(field_editor.value[:pos-1], field_editor.value[pos:]...)
+	} else {
+		field_editor.value = field_editor.value[:pos-1]
+	}
+
+	field_editor.cursor_pos--
+}
+
 func (field_editor *FieldEditor) drawFieldValueAtPoint(style Style, x, y int) int {
-	termbox.SetCursor(x+2+field_editor.cursor_pos, y)
-	if utf8.RuneCount(field_editor.value) > 0 || len(field_editor.last_value) == 0 {
-		return drawStringAtPoint(fmt.Sprintf(" %-10s ", field_editor.value), x+1, y,
+	termbox.SetCursor(x+1+field_editor.cursor_pos, y)
+	if len(field_editor.value) > 0 || len(field_editor.last_value) == 0 {
+		return drawStringAtPoint(fmt.Sprintf(" %-*s ", field_editor.width, string(field_editor.value)), x, y,
 			style.field_editor_fg, style.field_editor_bg)
 	} else {
-		return drawStringAtPoint(fmt.Sprintf(" %-10s ", field_editor.last_value), x+1, y,
+		return drawStringAtPoint(fmt.Sprintf(" %-*s ", field_editor.width, field_editor.last_value), x, y,
 			style.field_editor_last_fg, style.field_editor_last_bg)
 	}
 }

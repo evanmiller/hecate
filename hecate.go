@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"errors"
 
 	mmap "github.com/edsrzf/mmap-go"
 
@@ -84,6 +85,29 @@ func mainLoop(files []FileInfo, style Style) {
 	}
 }
 
+func openFile (filename string) (*FileInfo, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("Error opening file: %q\n", err.Error()))
+	}
+
+	fi, err := file.Stat()
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("Error stat'ing file: %q\n", err.Error()))
+	}
+
+	if fi.Size() < 8 {
+		return nil, errors.New(fmt.Sprintf("File %s is too short to be edited\n", filename))
+	}
+
+	mm, err := mmap.Map(file, mmap.RDONLY, 0)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("Error mmap'ing file: %q\n", err.Error()))
+	}
+
+	return &FileInfo{filename: path.Base(filename), bytes: mm}, nil
+}
+
 func main() {
 	var err error
 
@@ -93,31 +117,13 @@ func main() {
 	}
 	var files []FileInfo
 	for i := 1; i < len(os.Args); i++ {
-		file_path := os.Args[i]
-
-		file, err := os.Open(file_path)
+		file_info, err := openFile(os.Args[i])
 		if err != nil {
-			fmt.Printf("Error opening file: %q\n", err.Error())
+			fmt.Print(err)
 			os.Exit(1)
 		}
 
-		fi, err := file.Stat()
-		if err != nil {
-			fmt.Printf("Error stat'ing file: %q\n", err.Error())
-			os.Exit(1)
-		}
-
-		if fi.Size() < 8 {
-			fmt.Printf("File %s is too short to be edited\n", file_path)
-			os.Exit(1)
-		}
-
-		mm, err := mmap.Map(file, mmap.RDONLY, 0)
-		if err != nil {
-			fmt.Printf("Error mmap'ing file: %q\n", err.Error())
-			os.Exit(1)
-		}
-		files = append(files, FileInfo{filename: path.Base(file_path), bytes: mm})
+		files = append(files, *file_info)
 	}
 
 	err = termbox.Init()

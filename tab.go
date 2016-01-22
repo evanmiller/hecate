@@ -178,13 +178,13 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 		if tab.is_searching {
 			tab.search_quit_channel <- true
 		}
-		tab.field_editor = new(FieldEditor)
+		tab.field_editor = &FieldEditor{ width: 10 }
 		tab.edit_mode = EditingOffset
 	} else if event.Ch == '/' {
 		if tab.is_searching {
 			tab.search_quit_channel <- true
 		}
-		tab.field_editor = &FieldEditor{ last_value: tab.prev_search }
+		tab.field_editor = &FieldEditor{ last_value: tab.prev_search, width: 10 }
 		tab.edit_mode = EditingSearch
 	} else if event.Ch == '@' {
 		if tab.show_date {
