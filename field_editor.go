@@ -43,7 +43,9 @@ func (field_editor *FieldEditor) handleKeyEvent(event termbox.Event) (string, bo
 	} else if event.Key == termbox.KeyArrowDown || event.Key == termbox.KeyCtrlE {
 		field_editor.setCursorPos(len(field_editor.value))
 	} else if event.Key == termbox.KeyCtrlH || event.Key == termbox.KeyBackspace {
-		field_editor.delete()
+		field_editor.delete_back()
+	} else if event.Key == termbox.KeyCtrlD || event.Key == termbox.KeyDelete {
+		field_editor.delete_front()
 	} else if event.Key == termbox.KeyCtrlK {
 		field_editor.setValue(make([]rune, 0))
 	} else if unicode.IsPrint(event.Ch) {
@@ -92,7 +94,14 @@ func (field_editor *FieldEditor) insert(r rune) {
 	field_editor.moveCursor(1)
 }
 
-func (field_editor *FieldEditor) delete() {
+func (field_editor *FieldEditor) delete_front() {
+	pos := field_editor.cursor_pos
+	if pos < len(field_editor.value) {
+		field_editor.value = append(field_editor.value[:pos], field_editor.value[pos+1:]...)
+	}
+}
+
+func (field_editor *FieldEditor) delete_back() {
 	pos := field_editor.cursor_pos
 	if pos == 0 {
 		return
