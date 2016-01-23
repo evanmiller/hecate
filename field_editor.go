@@ -35,17 +35,13 @@ func (field_editor *FieldEditor) handleKeyEvent(event termbox.Event) (string, bo
 		is_done = true
 		field_editor.value = nil
 	} else if event.Key == termbox.KeyArrowLeft {
-		if field_editor.cursor_pos > 0 {
-			field_editor.cursor_pos--
-		}
+		field_editor.moveCursor(-1)
 	} else if event.Key == termbox.KeyArrowUp || event.Key == termbox.KeyCtrlA {
 		field_editor.cursor_pos = 0
 	} else if event.Key == termbox.KeyArrowRight {
-		if field_editor.cursor_pos < len(field_editor.value) {
-			field_editor.cursor_pos++
-		}
+		field_editor.moveCursor(1)
 	} else if event.Key == termbox.KeyArrowDown || event.Key == termbox.KeyCtrlE {
-		field_editor.cursor_pos = len(field_editor.value)
+		field_editor.setCursorPos(len(field_editor.value))
 	} else if event.Key == termbox.KeyCtrlH || event.Key == termbox.KeyBackspace {
 		field_editor.delete()
 	} else if event.Key == termbox.KeyCtrlK {
@@ -61,8 +57,25 @@ func (field_editor *FieldEditor) handleKeyEvent(event termbox.Event) (string, bo
 func (field_editor *FieldEditor) setValue (value []rune) {
 	field_editor.value = value
 	if field_editor.cursor_pos > len(field_editor.value) {
-		field_editor.cursor_pos = len(field_editor.value)
+		field_editor.setCursorPos(len(field_editor.value))
 	}
+}
+
+func (field_editor *FieldEditor) setCursorPos (pos int) {
+	if pos < 0 {
+		pos = 0
+	} else if field_editor.fixed > 0 && pos >= field_editor.fixed {
+		pos = field_editor.fixed - 1
+	}
+	if pos > len(field_editor.value) {
+		pos = len(field_editor.value)
+	}
+
+	field_editor.cursor_pos = pos
+}
+
+func (field_editor *FieldEditor) moveCursor (delta int) {
+	field_editor.setCursorPos(field_editor.cursor_pos + delta)
 }
 
 func (field_editor *FieldEditor) insert(r rune) {
@@ -75,7 +88,8 @@ func (field_editor *FieldEditor) insert(r rune) {
 		pos := field_editor.cursor_pos
 		field_editor.value = append(field_editor.value[:pos], append([]rune{r}, field_editor.value[pos:]...)...)
 	}
-	field_editor.cursor_pos++
+
+	field_editor.moveCursor(1)
 }
 
 func (field_editor *FieldEditor) delete() {
@@ -88,7 +102,7 @@ func (field_editor *FieldEditor) delete() {
 		field_editor.value = field_editor.value[:pos-1]
 	}
 
-	field_editor.cursor_pos--
+	field_editor.moveCursor(-1)
 }
 
 func (field_editor *FieldEditor) drawFieldValueAtPoint(style Style, x, y int) int {
