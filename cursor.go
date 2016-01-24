@@ -173,43 +173,49 @@ func (cursor *Cursor) interpretBytesAsInteger(data []byte) uint64 {
 }
 
 func (cursor *Cursor) formatBytesAsNumber(data []byte) string {
-	str := ""
 	integer := cursor.interpretBytesAsInteger(data)
 	if cursor.mode == IntegerMode {
 		if cursor.int_length == 1 {
 			if cursor.unsigned {
-				str = fmt.Sprintf("%d", uint8(integer))
+				return fmt.Sprintf("%d", uint8(integer))
 			} else {
-				str = fmt.Sprintf("%d", int8(integer))
+				return fmt.Sprintf("%d", int8(integer))
 			}
 		} else if cursor.int_length == 2 {
 			if cursor.unsigned {
-				str = fmt.Sprintf("%d", uint16(integer))
+				return fmt.Sprintf("%d", uint16(integer))
 			} else {
-				str = fmt.Sprintf("%d", int16(integer))
+				return fmt.Sprintf("%d", int16(integer))
 			}
 		} else if cursor.int_length == 4 {
 			if cursor.unsigned {
-				str = fmt.Sprintf("%d", uint32(integer))
+				return fmt.Sprintf("%d", uint32(integer))
 			} else {
-				str = fmt.Sprintf("%d", int32(integer))
+				return fmt.Sprintf("%d", int32(integer))
 			}
 		} else if cursor.int_length == 8 {
 			if cursor.unsigned {
-				str = fmt.Sprintf("%d", uint64(integer))
+				return fmt.Sprintf("%d", uint64(integer))
 			} else {
-				str = fmt.Sprintf("%d", int64(integer))
+				return fmt.Sprintf("%d", int64(integer))
 			}
 		}
 	} else if cursor.mode == FloatingPointMode {
 		if cursor.fp_length == 4 {
 			var integer32 uint32 = uint32(integer)
-			str = fmt.Sprintf("%.5g", math.Float32frombits(integer32))
+			return fmt.Sprintf("%.5g", math.Float32frombits(integer32))
 		} else if cursor.fp_length == 8 {
-			str = fmt.Sprintf("%g", math.Float64frombits(integer))
+			return fmt.Sprintf("%g", math.Float64frombits(integer))
 		}
+	} else if cursor.mode == BitPatternMode {
+		str := ""
+		for i := 0; i < cursor.bit_length; i++ {
+			str = fmt.Sprintf("%s %02x", str, data[i])
+		}
+		return str[1:]
 	}
-	return str
+
+	return string(data)
 }
 
 func (cursor *Cursor) interpretBytesAsTime(data []byte) time.Time {

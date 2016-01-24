@@ -200,7 +200,7 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 		}
 		val := tab.editContent()
 		fix := tab.cursor.length()
-		if tab.cursor.mode == IntegerMode || tab.cursor.mode == FloatingPointMode {
+		if tab.cursor.mode == IntegerMode || tab.cursor.mode == FloatingPointMode || tab.cursor.mode == BitPatternMode {
 			fix = fix * 3 - 1
 		}
 		tab.field_editor = &FieldEditor{
@@ -301,11 +301,7 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 
 func (tab *DataTab) editContent () string {
 	val := tab.bytes[tab.cursor.pos : tab.cursor.pos + tab.cursor.length()]
-	if tab.cursor.mode == IntegerMode || tab.cursor.mode == FloatingPointMode {
-		return tab.cursor.formatBytesAsNumber(val)
-	}
-
-	return string(val)
+	return tab.cursor.formatBytesAsNumber(val)
 }
 
 func (tab *DataTab) drawTab(style Style, vertical_offset int) {
@@ -382,19 +378,21 @@ func (tab *DataTab) drawTab(style Style, vertical_offset int) {
 	}
 
 	if cursor.mode == BitPatternMode {
+		x_copy := cursor_x
+		y_copy := cursor_y
 		if cursor_length == 1 || (cursor.pos+1)%view_port.bytes_per_row == 0 {
 			for j := 0; j < cursor_length; j++ {
 				b := tab.bytes[cursor.pos+j]
 				for i := 0; i < 8; i++ {
 					if b&(1<<uint8(7-i)) > 0 {
-						termbox.SetCell(cursor_x-1+(i%4), cursor_y+1+i/4, style.filled_bit_rune, style.bit_fg, rune_bg)
+						termbox.SetCell(x_copy-1+(i%4), y_copy+1+i/4, style.filled_bit_rune, style.bit_fg, rune_bg)
 					} else {
-						termbox.SetCell(cursor_x-1+(i%4), cursor_y+1+i/4, style.empty_bit_rune, style.bit_fg, rune_bg)
+						termbox.SetCell(x_copy-1+(i%4), y_copy+1+i/4, style.empty_bit_rune, style.bit_fg, rune_bg)
 					}
 				}
-				cursor_x = start_x
-				cursor_y += line_height
-				if cursor_y > last_y {
+				x_copy = start_x
+				y_copy += line_height
+				if y_copy > last_y {
 					break
 				}
 			}
@@ -403,9 +401,9 @@ func (tab *DataTab) drawTab(style Style, vertical_offset int) {
 				b := tab.bytes[cursor.pos+j]
 				for i := 0; i < 8; i++ {
 					if b&(1<<uint8(7-i)) > 0 {
-						termbox.SetCell(cursor_x-1+i, cursor_y+j+1, style.filled_bit_rune, style.bit_fg, rune_bg)
+						termbox.SetCell(x_copy-1+i, y_copy+j+1, style.filled_bit_rune, style.bit_fg, rune_bg)
 					} else {
-						termbox.SetCell(cursor_x-1+i, cursor_y+j+1, style.empty_bit_rune, style.bit_fg, rune_bg)
+						termbox.SetCell(x_copy-1+i, y_copy+j+1, style.empty_bit_rune, style.bit_fg, rune_bg)
 					}
 				}
 			}
@@ -436,7 +434,10 @@ func (tab *DataTab) drawTab(style Style, vertical_offset int) {
 	if tab.field_editor != nil {
 		if tab.edit_mode == EditingContent {
 			x = cursor_x - 1
-			y = cursor_y + 1
+			y = cursor_y
+			if tab.cursor.mode != BitPatternMode {
+				y++
+			}
 		} else {
 			widget_width := layout.width()
 			widget_height := layout.widget_size.height

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"time"
+	"strings"
 )
 
 func scanEpoch(value string, epoch time.Time) time.Time {
@@ -170,6 +171,17 @@ func scanEditedContent (value string, cursor Cursor) string {
 			return binaryStringForInteger32(math.Float32bits(float32(scanned_fp)), cursor.big_endian)
 		} else if cursor.fp_length == 8 {
 			return binaryStringForInteger64(math.Float64bits(scanned_fp), cursor.big_endian)
+		}
+	} else if cursor.mode == BitPatternMode {
+		var scanned_int int64
+		scan_fmt := "%" + string('0' + (cursor.bit_length * 2)) + "x"
+		if n, _ := fmt.Sscanf(strings.Replace(value, " ", "", -1), scan_fmt, &scanned_int); n < 1 {
+			return ""
+		}
+		if cursor.bit_length == 1 {
+			return binaryStringForInteger8(uint8(scanned_int))
+		} else if cursor.bit_length == 2 {
+			return binaryStringForInteger16(uint16(scanned_int), true)
 		}
 	}
 
