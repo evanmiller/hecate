@@ -164,7 +164,20 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 			tab.field_editor = nil
 		} else if tab.edit_mode == EditingContent {
 			copy(tab.bytes[tab.cursor.pos:], scanEditedContent(string_value, tab.cursor))
-			if len(tab.field_editor.value) > 0 {
+			delta_pos := 0
+			if tab.field_editor.at_eol {
+				delta_pos = tab.cursor.length()
+			} else if tab.field_editor.at_bol {
+				delta_pos = -tab.cursor.length()
+			}
+
+			if delta_pos != 0 {
+				tab.cursor.move(delta_pos)
+				val := tab.editContent()
+				tab.field_editor.setCursorPos(0)
+				tab.field_editor.setValue([]rune(val))
+				tab.field_editor.last_value = val
+			} else if len(tab.field_editor.value) > 0 {
 				tab.field_editor.setValue([]rune(tab.editContent()))
 			}
 		}

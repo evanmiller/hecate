@@ -14,6 +14,8 @@ type FieldEditor struct {
 	width      int
 	fixed      int
 	overwrite  bool
+	at_bol     bool
+	at_eol     bool
 }
 
 func (field_editor *FieldEditor) handleKeyEvent(event termbox.Event) (string, bool) {
@@ -64,16 +66,23 @@ func (field_editor *FieldEditor) setValue (value []rune) {
 }
 
 func (field_editor *FieldEditor) setCursorPos (pos int) {
+	bol := false
+	eol := false
 	if pos < 0 {
 		pos = 0
+		bol = true
 	} else if field_editor.fixed > 0 && pos >= field_editor.fixed {
 		pos = field_editor.fixed - 1
+		eol = true
 	}
 	if pos > len(field_editor.value) {
 		pos = len(field_editor.value)
+		eol = true
 	}
 
 	field_editor.cursor_pos = pos
+	field_editor.at_bol = bol
+	field_editor.at_eol = eol
 }
 
 func (field_editor *FieldEditor) moveCursor (delta int) {
