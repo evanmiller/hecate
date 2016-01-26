@@ -49,8 +49,15 @@ type DataTab struct {
 }
 
 func NewDataTab(file FileInfo) DataTab {
-	cursor := Cursor{int_length: 4, fp_length: 4, bit_length: 1, mode: StringMode,
-		epoch_unit: SecondsSinceEpoch, epoch_time: time.Unix(0, 0).UTC()}
+	cursor := Cursor{
+		int_length: 4,
+		fp_length: 4,
+		bit_length: 1,
+		mode: StringMode,
+		max_pos: len(file.bytes),
+		epoch_unit: SecondsSinceEpoch,
+		epoch_time: time.Unix(0, 0).UTC(),
+	}
 
 	return DataTab{
 		search_result_channel:   make(chan *Cursor),
@@ -80,6 +87,7 @@ func (tab *DataTab) receiveEvents(output chan<- int) {
 			tab.search_progress = 0.0
 			if search_result != nil {
 				tab.cursor = *search_result
+				tab.cursor.max_pos = len(tab.bytes)
 				tab.hilite = tab.cursor.highlightRange(tab.bytes)
 			}
 			output <- DATA_SCREEN_INDEX
@@ -161,7 +169,7 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 			}
 		}
 		if new_pos >= 0 {
-			tab.cursor.pos = new_pos
+			tab.cursor.setPos(new_pos)
 		}
 	} else if event.Ch == 'q' || event.Key == termbox.KeyCtrlC {
 		if tab.is_searching {
@@ -229,29 +237,29 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 			tab.cursor.epoch_unit = DaysSinceEpoch
 		}
 	} else if event.Ch == 'j' || event.Key == termbox.KeyArrowDown { // down
-		tab.cursor.pos += tab.view_port.bytes_per_row
+		tab.cursor.move(tab.view_port.bytes_per_row)
 	} else if event.Key == termbox.KeyCtrlF || event.Key == termbox.KeyPgdn { // page down
-		tab.cursor.pos += tab.view_port.bytes_per_row * tab.view_port.number_of_rows
+		tab.cursor.move(tab.view_port.bytes_per_row * tab.view_port.number_of_rows)
 	} else if event.Ch == 'k' || event.Key == termbox.KeyArrowUp { // up
-		tab.cursor.pos -= tab.view_port.bytes_per_row
+		tab.cursor.move(-tab.view_port.bytes_per_row)
 	} else if event.Key == termbox.KeyCtrlB || event.Key == termbox.KeyPgup { // page up
-		tab.cursor.pos -= tab.view_port.bytes_per_row * tab.view_port.number_of_rows
+		tab.cursor.move(-tab.view_port.bytes_per_row * tab.view_port.number_of_rows)
 	} else if event.Ch == 'h' || event.Key == termbox.KeyArrowLeft { // left
-		tab.cursor.pos--
+		tab.cursor.move(-1)
 	} else if event.Ch == 'l' || event.Key == termbox.KeyArrowRight { // right
-		tab.cursor.pos++
+		tab.cursor.move(1)
 	} else if event.Ch == 'w' { /* forward 1 "word" */
-		tab.cursor.pos += 4
+		tab.cursor.move(4)
 	} else if event.Ch == 'b' { /* back 1 "word" */
-		tab.cursor.pos -= 4
+		tab.cursor.move(-4)
 	} else if event.Ch == 'g' {
-		tab.cursor.pos = 0
+		tab.cursor.setPos(0)
 	} else if event.Ch == 'G' {
-		tab.cursor.pos = len(tab.bytes)
+		tab.cursor.setPos(len(tab.bytes))
 	} else if event.Ch == '^' {
-		tab.cursor.pos = tab.cursor.pos / tab.view_port.bytes_per_row * tab.view_port.bytes_per_row
+		tab.cursor.setPos(tab.cursor.pos / tab.view_port.bytes_per_row * tab.view_port.bytes_per_row)
 	} else if event.Ch == '$' {
-		tab.cursor.pos = (tab.cursor.pos/tab.view_port.bytes_per_row+1)*tab.view_port.bytes_per_row - tab.cursor.length()
+		tab.cursor.setPos((tab.cursor.pos/tab.view_port.bytes_per_row+1)*tab.view_port.bytes_per_row - tab.cursor.length())
 	} else if modes[event.Ch] != 0 {
 		if tab.cursor.mode == modes[event.Ch] {
 			tab.cursor.mode = tab.prev_mode
@@ -276,22 +284,18 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 		if (tab.view_port.first_row+1)*tab.view_port.bytes_per_row < len(tab.bytes) {
 			tab.view_port.first_row++
 			if tab.cursor.pos < tab.view_port.first_row*tab.view_port.bytes_per_row {
-				tab.cursor.pos += tab.view_port.bytes_per_row
+				tab.cursor.move(tab.view_port.bytes_per_row)
 			}
 		}
 	} else if event.Key == termbox.KeyCtrlY { /* scroll up */
 		tab.view_port.first_row--
 		if tab.cursor.pos > (tab.view_port.first_row+tab.view_port.number_of_rows)*tab.view_port.bytes_per_row {
-			tab.cursor.pos -= tab.view_port.bytes_per_row
+			tab.cursor.move(-tab.view_port.bytes_per_row)
 		}
 	}
-	if tab.cursor.pos < 0 {
-		tab.cursor.pos = 0
-	}
-	if tab.cursor.pos+tab.cursor.length() > len(tab.bytes) {
-		tab.cursor.pos = len(tab.bytes) - tab.cursor.length()
-	}
+
 	tab.hilite = tab.cursor.highlightRange(tab.bytes)
+
 	if tab.field_editor == nil {
 		termbox.HideCursor()
 	}
