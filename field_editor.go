@@ -11,6 +11,7 @@ type FieldEditor struct {
 	value      []rune
 	cursor_pos int
 	last_value string
+	init_value string
 	width      int
 	fixed      int
 	overwrite  bool
@@ -21,8 +22,12 @@ type FieldEditor struct {
 func (field_editor *FieldEditor) handleKeyEvent(event termbox.Event) (string, bool) {
 	is_done := false
 
-	if event.Ch == 0 && len(field_editor.value) == 0 {
-		field_editor.setValue([]rune(field_editor.last_value))
+	if len(field_editor.value) == 0 {
+		if event.Ch == 0 {
+			field_editor.setValue([]rune(field_editor.last_value))
+		} else if len(field_editor.init_value) > 0 {
+			field_editor.setValue([]rune(field_editor.init_value))
+		}
 	}
 
 	if field_editor.fixed > 0 {

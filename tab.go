@@ -224,6 +224,7 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 		}
 		tab.field_editor = &FieldEditor{
 			last_value: val,
+			init_value: tab.cursor.formatBytesAsNumber([]byte{0, 0, 0, 0}),
 			width: tab.cursor.length() * 3 - 1,
 			fixed: fix,
 			overwrite: true,

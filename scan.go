@@ -132,9 +132,13 @@ func scanSearchString(value string, bytes []byte, cursor Cursor, quit <-chan boo
 }
 
 func scanEditedContent (value string, cursor Cursor) string {
+	if len(value) == 0 {
+		return ""
+	}
+
 	if cursor.mode == IntegerMode {
 		var scanned_int int64
-		if n, _ := fmt.Sscanf(value, "%d", &scanned_int); n < 1 {
+		if n, _ := fmt.Sscanf(cleanupIntValue(value), "%d", &scanned_int); n < 1 {
 			return ""
 		}
 		if cursor.int_length == 1 {
@@ -164,7 +168,7 @@ func scanEditedContent (value string, cursor Cursor) string {
 		}
 	} else if cursor.mode == FloatingPointMode {
 		var scanned_fp float64
-		if n, _ := fmt.Sscanf(value, "%g", &scanned_fp); n < 1 {
+		if n, _ := fmt.Sscanf(cleanupFloatValue(value), "%g", &scanned_fp); n < 1 {
 			return ""
 		}
 		if cursor.fp_length == 4 {
@@ -175,7 +179,7 @@ func scanEditedContent (value string, cursor Cursor) string {
 	} else if cursor.mode == BitPatternMode {
 		var scanned_int int64
 		scan_fmt := "%" + string('0' + (cursor.bit_length * 2)) + "x"
-		if n, _ := fmt.Sscanf(strings.Replace(value, " ", "", -1), scan_fmt, &scanned_int); n < 1 {
+		if n, _ := fmt.Sscanf(cleanupHexValue(value), scan_fmt, &scanned_int); n < 1 {
 			return ""
 		}
 		if cursor.bit_length == 1 {
@@ -185,5 +189,33 @@ func scanEditedContent (value string, cursor Cursor) string {
 		}
 	}
 
+	return value
+}
+
+func cleanupIntValue (value string) string {
+	switch value[len(value) - 1] {
+	case '+', '-':
+		return (value + "1")
+	default:
+		return value
+	}
+}
+
+func cleanupFloatValue (value string) string {
+	switch value[len(value) - 1] {
+	case '.', '+', '-':
+		return (value + "1")
+	case 'e':
+		return (value + "+1")
+	default:
+		return value
+	}
+}
+
+func cleanupHexValue (value string) string {
+	value = strings.Replace(value, " ", "", -1)
+	if len(value) % 2 == 1 {
+		return value[:len(value) - 2] + string(value[len(value) - 1])
+	}
 	return value
 }
