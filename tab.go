@@ -173,10 +173,8 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 
 			if delta_pos != 0 {
 				tab.cursor.move(delta_pos)
-				val := tab.editContent()
-				tab.field_editor.setCursorPos(0)
-				tab.field_editor.setValue([]rune(val))
-				tab.field_editor.last_value = val
+				tab.field_editor.setValue(nil)
+				tab.field_editor.last_value = tab.editContent()
 			} else if len(tab.field_editor.value) > 0 {
 				tab.field_editor.setValue([]rune(tab.editContent()))
 			}
@@ -225,7 +223,6 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 			fix = fix * 3 - 1
 		}
 		tab.field_editor = &FieldEditor{
-			value: []rune(val),
 			last_value: val,
 			width: tab.cursor.length() * 3 - 1,
 			fixed: fix,

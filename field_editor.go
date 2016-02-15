@@ -39,10 +39,12 @@ func (field_editor *FieldEditor) handleKeyEvent(event termbox.Event) (string, bo
 	} else if event.Key == termbox.KeyArrowLeft {
 		field_editor.moveCursor(-1)
 	} else if event.Key == termbox.KeyArrowUp || event.Key == termbox.KeyCtrlA {
-		field_editor.cursor_pos = 0
+		field_editor.at_bol = event.Key == termbox.KeyArrowUp
+		field_editor.setCursorPos(0)
 	} else if event.Key == termbox.KeyArrowRight {
 		field_editor.moveCursor(1)
 	} else if event.Key == termbox.KeyArrowDown || event.Key == termbox.KeyCtrlE {
+		field_editor.at_eol = event.Key == termbox.KeyArrowDown
 		field_editor.setCursorPos(len(field_editor.value))
 	} else if event.Key == termbox.KeyCtrlH || event.Key == termbox.KeyBackspace {
 		field_editor.delete_back()
@@ -60,23 +62,31 @@ func (field_editor *FieldEditor) handleKeyEvent(event termbox.Event) (string, bo
 
 func (field_editor *FieldEditor) setValue (value []rune) {
 	field_editor.value = value
+
+	field_editor.at_bol = false
+	field_editor.at_eol = false
+
 	if field_editor.cursor_pos > len(field_editor.value) {
 		field_editor.setCursorPos(len(field_editor.value))
 	}
 }
 
 func (field_editor *FieldEditor) setCursorPos (pos int) {
-	bol := false
-	eol := false
+	bol := field_editor.at_bol
+	eol := field_editor.at_eol
+
 	if pos < 0 {
 		pos = 0
 		bol = true
+		eol = false
 	} else if field_editor.fixed > 0 && pos >= field_editor.fixed {
 		pos = field_editor.fixed - 1
+		bol = false
 		eol = true
 	}
 	if pos > len(field_editor.value) {
 		pos = len(field_editor.value)
+		bol = false
 		eol = true
 	}
 
