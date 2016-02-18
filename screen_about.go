@@ -132,6 +132,7 @@ func (screen *AboutScreen) drawScreen(style Style) {
 		{"ctrl-f", "page down"},
 		{"ctrl-b", "page up"},
 
+		{"enter", "edit mode"},
 		{"?", "this screen"},
 		{"q", "quit program"},
 	}
