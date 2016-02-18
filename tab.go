@@ -140,8 +140,9 @@ func (tab *DataTab) performLayout(width int, height int) {
 func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 	if tab.field_editor != nil {
 		new_pos := -1
-		string_value, is_done := tab.field_editor.handleKeyEvent(event)
+		is_done := tab.field_editor.handleKeyEvent(event)
 		if is_done {
+			string_value := tab.field_editor.getValue()
 			if len(string_value) > 0 {
 				if tab.edit_mode == EditingSearch {
 					tab.is_searching = true
@@ -163,7 +164,7 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 			tab.edit_mode = 0
 			tab.field_editor = nil
 		} else if tab.edit_mode == EditingContent {
-			copy(tab.bytes[tab.cursor.pos:], scanEditedContent(string_value, tab.cursor))
+			new_value := tab.updateEditedContent(tab.field_editor.getValue())
 			delta_pos := 0
 			if tab.field_editor.at_eol {
 				delta_pos = tab.cursor.length()
@@ -176,7 +177,9 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 				tab.field_editor.setValue(nil)
 				tab.field_editor.last_value = tab.editContent()
 			} else if len(tab.field_editor.value) > 0 {
-				tab.field_editor.setValue([]rune(tab.editContent()))
+				if tab.field_editor.valid {
+					tab.field_editor.setValue([]rune(new_value))
+				}
 			}
 		}
 		if new_pos >= 0 {
@@ -205,13 +208,13 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 		if tab.is_searching {
 			tab.search_quit_channel <- true
 		}
-		tab.field_editor = &FieldEditor{ width: 10 }
+		tab.field_editor = &FieldEditor{ width: 10, valid: true }
 		tab.edit_mode = EditingOffset
 	} else if event.Ch == '/' {
 		if tab.is_searching {
 			tab.search_quit_channel <- true
 		}
-		tab.field_editor = &FieldEditor{ last_value: tab.prev_search, width: 10 }
+		tab.field_editor = &FieldEditor{ last_value: tab.prev_search, width: 10, valid: true }
 		tab.edit_mode = EditingSearch
 	} else if event.Key == termbox.KeyEnter {
 		if tab.is_searching {
@@ -221,18 +224,22 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 		fix := tab.cursor.length()
 		if tab.cursor.mode == IntegerMode || tab.cursor.mode == FloatingPointMode || tab.cursor.mode == BitPatternMode {
 			fix = fix * 3 - 1
+			if tab.cursor.mode == BitPatternMode {
+				fix--
+			}
 		}
 		tab.field_editor = &FieldEditor{
 			last_value: val,
 			init_value: tab.cursor.formatBytesAsNumber([]byte{0, 0, 0, 0}),
 			width: tab.cursor.length() * 3 - 1,
 			fixed: fix,
+			valid: true,
 			overwrite: true,
 		}
 		tab.edit_mode = EditingContent
 	} else if event.Ch == '@' {
 		if tab.show_date {
-			tab.field_editor = new(FieldEditor)
+			tab.field_editor = &FieldEditor{ width: 10, valid: true }
 			tab.edit_mode = EditingEpoch
 		}
 	} else if event.Ch == 'x' {
@@ -317,6 +324,20 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 func (tab *DataTab) editContent () string {
 	val := tab.bytes[tab.cursor.pos : tab.cursor.pos + tab.cursor.length()]
 	return tab.cursor.formatBytesAsNumber(val)
+}
+
+func (tab *DataTab) updateEditedContent (value string) string {
+	if len(value) == 0 {
+		tab.field_editor.valid = true
+		return ""
+	}
+	scanned_data := scanEditedContent(value, tab.cursor)
+	scanned_value := tab.cursor.formatBytesAsNumber([]byte(scanned_data))
+	tab.field_editor.valid = scanned_data == scanEditedContent(scanned_value, tab.cursor)
+	if tab.field_editor.valid {
+		copy(tab.bytes[tab.cursor.pos:], scanned_data)
+	}
+	return scanned_value
 }
 
 func (tab *DataTab) drawTab(style Style, vertical_offset int) {

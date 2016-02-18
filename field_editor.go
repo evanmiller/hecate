@@ -17,12 +17,13 @@ type FieldEditor struct {
 	overwrite  bool
 	at_bol     bool
 	at_eol     bool
+	valid      bool
 }
 
-func (field_editor *FieldEditor) handleKeyEvent(event termbox.Event) (string, bool) {
+func (field_editor *FieldEditor) handleKeyEvent(event termbox.Event) bool {
 	is_done := false
 
-	if len(field_editor.value) == 0 {
+	if len(field_editor.value) == 0 && event.Key != termbox.KeyEsc {
 		if event.Ch == 0 {
 			field_editor.setValue([]rune(field_editor.last_value))
 		} else if len(field_editor.init_value) > 0 {
@@ -39,8 +40,8 @@ func (field_editor *FieldEditor) handleKeyEvent(event termbox.Event) (string, bo
 	if event.Key == termbox.KeyEnter {
 		is_done = true
 	} else if event.Key == termbox.KeyEsc {
-		is_done = true
-		field_editor.value = nil
+		is_done = len(field_editor.value) == 0
+		field_editor.setValue(nil)
 	} else if event.Key == termbox.KeyArrowLeft {
 		field_editor.moveCursor(-1)
 	} else if event.Key == termbox.KeyArrowUp || event.Key == termbox.KeyCtrlA {
@@ -62,7 +63,14 @@ func (field_editor *FieldEditor) handleKeyEvent(event termbox.Event) (string, bo
 	} else if event.Key == termbox.KeySpace {
 		field_editor.insert(' ')
 	}
-	return string(field_editor.value), is_done
+	return is_done
+}
+
+func (field_editor *FieldEditor) getValue () string {
+	if len(field_editor.value) > 0 {
+		return string(field_editor.value)
+	}
+	return field_editor.last_value
 }
 
 func (field_editor *FieldEditor) setValue (value []rune) {
@@ -140,11 +148,15 @@ func (field_editor *FieldEditor) delete_back() {
 
 func (field_editor *FieldEditor) drawFieldValueAtPoint(style Style, x, y int) int {
 	termbox.SetCursor(x+1+field_editor.cursor_pos, y)
+	fg, bg, value := style.field_editor_last_fg, style.field_editor_last_bg, field_editor.last_value
+
 	if len(field_editor.value) > 0 || len(field_editor.last_value) == 0 {
-		return drawStringAtPoint(fmt.Sprintf(" %-*s ", field_editor.width, string(field_editor.value)), x, y,
-			style.field_editor_fg, style.field_editor_bg)
-	} else {
-		return drawStringAtPoint(fmt.Sprintf(" %-*s ", field_editor.width, field_editor.last_value), x, y,
-			style.field_editor_last_fg, style.field_editor_last_bg)
+		fg, bg, value = style.field_editor_fg, style.field_editor_bg, string(field_editor.value)
 	}
+
+	if !field_editor.valid {
+		fg, bg = style.field_editor_invalid_fg, style.field_editor_invalid_bg
+	}
+
+	return drawStringAtPoint(fmt.Sprintf(" %-*s ", field_editor.width, value), x, y, fg, bg)
 }

@@ -211,9 +211,9 @@ func (cursor *Cursor) formatBytesAsNumber(data []byte) string {
 	} else if cursor.mode == BitPatternMode {
 		str := ""
 		for i := 0; i < cursor.bit_length; i++ {
-			str = fmt.Sprintf("%s %02x", str, data[i])
+			str = fmt.Sprintf("%s%02x", str, data[i])
 		}
-		return str[1:]
+		return str
 	}
 
 	return string(data)

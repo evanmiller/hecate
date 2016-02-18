@@ -47,6 +47,9 @@ func defaultStyle() Style {
 	style.field_editor_last_bg = style.rune_fg
 	style.field_editor_last_fg = style.default_fg
 
+	style.field_editor_invalid_bg = termbox.Attribute(125)
+	style.field_editor_invalid_fg = style.rune_fg
+
 	style.space_rune = '•'
 	style.filled_bit_rune = '●'
 	style.empty_bit_rune = '○'
