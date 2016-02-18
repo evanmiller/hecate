@@ -38,7 +38,8 @@ func (field_editor *FieldEditor) handleKeyEvent(event termbox.Event) bool {
 	}
 
 	if event.Key == termbox.KeyEnter {
-		is_done = true
+		// only accept valid input
+		is_done = field_editor.valid
 	} else if event.Key == termbox.KeyEsc {
 		is_done = len(field_editor.value) == 0
 		field_editor.setValue(nil)

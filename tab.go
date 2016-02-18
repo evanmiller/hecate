@@ -159,7 +159,7 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 					tab.cursor.epoch_time = scanEpoch(string_value, tab.cursor.epoch_time)
 				}
 			} else if tab.edit_mode == EditingContent {
-				copy(tab.bytes[tab.cursor.pos:], scanEditedContent(tab.field_editor.last_value, tab.cursor))
+				tab.updateEditedContent(tab.field_editor.getValue())
 			}
 			tab.edit_mode = 0
 			tab.field_editor = nil
@@ -331,13 +331,18 @@ func (tab *DataTab) updateEditedContent (value string) string {
 		tab.field_editor.valid = true
 		return ""
 	}
-	scanned_data := scanEditedContent(value, tab.cursor)
+	scanned_data, rest := scanEditedContent(value, tab.cursor)
+	if len(rest) > 0 {
+		tab.field_editor.valid = false
+		return ""
+	}
 	scanned_value := tab.cursor.formatBytesAsNumber([]byte(scanned_data))
-	tab.field_editor.valid = scanned_data == scanEditedContent(scanned_value, tab.cursor)
+	rescanned_data, rerest := scanEditedContent(scanned_value, tab.cursor)
+	tab.field_editor.valid = rerest == "" && rescanned_data == scanned_data
 	if tab.field_editor.valid {
 		copy(tab.bytes[tab.cursor.pos:], scanned_data)
 	}
-	return scanned_value
+	return value
 }
 
 func (tab *DataTab) drawTab(style Style, vertical_offset int) {
