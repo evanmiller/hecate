@@ -98,7 +98,7 @@ func ShowModal (caption, text string, callback DialogProc) *DialogScreen {
 }
 
 func ShowMessage (caption, text string) *DialogScreen {
-	return NewDialogScreen (caption, text, 50, 8, defaultDialogCloseCallback)
+	return NewDialogScreen (caption, text, 70, 8, defaultDialogCloseCallback)
 }
 
 func defaultDialogCloseCallback (event termbox.Event, output chan<- interface{}) bool {

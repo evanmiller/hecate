@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"time"
-
+	"strings"
 	"github.com/nsf/termbox-go"
 )
 
@@ -320,8 +320,9 @@ func (tab *DataTab) editMode (output chan<- interface{}, confirmed bool) bool {
 						output <- ScreenIndex(DATA_SCREEN_INDEX)
 						return true
 					case 'Y':
-						tab.editMode(output, true)
-						output <- ScreenIndex(DATA_SCREEN_INDEX)
+						if tab.editMode(output, true) {
+							output <- ScreenIndex(DATA_SCREEN_INDEX)
+						}
 						return true
 					}
 					return false
@@ -330,7 +331,7 @@ func (tab *DataTab) editMode (output chan<- interface{}, confirmed bool) bool {
 		}
 
 		if err := tab.file_info.reopen(true); err != nil {
-			output <- ShowMessage("Open file failed", err.Error())
+			output <- ShowMessage("Open file for reading failed", strings.Join(strings.SplitAfterN(err.Error(), ":", 2), "\n"))
 			return false
 		}
 
