@@ -346,7 +346,7 @@ func (tab *DataTab) editMode (output chan<- interface{}, confirmed bool) bool {
 	if tab.cursor.mode == IntegerMode || tab.cursor.mode == FloatingPointMode || tab.cursor.mode == BitPatternMode {
 		fix = fix * 3 - 1
 		if tab.cursor.mode == BitPatternMode {
-			fix--
+			fix -= fix % 2
 		}
 	}
 
