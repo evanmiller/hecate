@@ -86,7 +86,8 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event, output chan<- inte
 		for index, old_tab := range screen.tabs {
 			new_tabs = append(new_tabs, old_tab)
 			if old_tab == active_tab {
-				tab_copy := NewDataTab(old_tab.file_info)
+				file_info, _ := openFile(old_tab.file_info.filename, false)
+				tab_copy := NewDataTab(*file_info)
 				tab_copy.cursor = old_tab.cursor
 				tab_copy.view_port = old_tab.view_port
 				tab_copy.cursor.pos = tab_copy.view_port.first_row * tab_copy.view_port.bytes_per_row
