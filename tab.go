@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"time"
-	"strings"
 	"github.com/nsf/termbox-go"
+	"strings"
+	"time"
 )
 
 var modes = map[rune]CursorMode{
@@ -51,10 +51,10 @@ type DataTab struct {
 func NewDataTab(file FileInfo) DataTab {
 	cursor := Cursor{
 		int_length: 4,
-		fp_length: 4,
+		fp_length:  4,
 		bit_length: 1,
-		mode: StringMode,
-		max_pos: len(file.bytes),
+		mode:       StringMode,
+		max_pos:    len(file.bytes),
 		epoch_unit: SecondsSinceEpoch,
 		epoch_time: time.Unix(0, 0).UTC(),
 	}
@@ -163,13 +163,13 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event, output chan<- interface{
 		if tab.is_searching {
 			tab.search_quit_channel <- true
 		}
-		tab.field_editor = &FieldEditor{ width: 10, valid: true }
+		tab.field_editor = &FieldEditor{width: 10, valid: true}
 		tab.edit_mode = EditingOffset
 	} else if event.Ch == '/' {
 		if tab.is_searching {
 			tab.search_quit_channel <- true
 		}
-		tab.field_editor = &FieldEditor{ last_value: tab.prev_search, width: 10, valid: true }
+		tab.field_editor = &FieldEditor{last_value: tab.prev_search, width: 10, valid: true}
 		tab.edit_mode = EditingSearch
 	} else if event.Key == termbox.KeyEnter {
 		if !tab.editMode(output, false) {
@@ -177,7 +177,7 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event, output chan<- interface{
 		}
 	} else if event.Ch == '@' {
 		if tab.show_date {
-			tab.field_editor = &FieldEditor{ width: 10, valid: true }
+			tab.field_editor = &FieldEditor{width: 10, valid: true}
 			tab.edit_mode = EditingEpoch
 		}
 	} else if event.Ch == 'x' {
@@ -259,7 +259,7 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event, output chan<- interface{
 	return DATA_SCREEN_INDEX
 }
 
-func (tab *DataTab) handleFieldEditor (event termbox.Event) {
+func (tab *DataTab) handleFieldEditor(event termbox.Event) {
 	new_pos := -1
 	is_done := tab.field_editor.handleKeyEvent(event)
 	if is_done {
@@ -308,24 +308,21 @@ func (tab *DataTab) handleFieldEditor (event termbox.Event) {
 	}
 }
 
-func (tab *DataTab) editMode (output chan<- interface{}, confirmed bool) bool {
+func (tab *DataTab) editMode(output chan<- interface{}, confirmed bool) bool {
 	if !tab.file_info.rw {
 
 		if !confirmed {
 			output <- ShowModal(
 				"Confirm read/write mode", "Unlock file for editing?    [ Y/n ]",
-				func (event termbox.Event, output chan<- interface{}) bool {
-					switch event.Ch {
-					case 'n':
-						output <- ScreenIndex(DATA_SCREEN_INDEX)
-						return true
-					case 'Y':
+				func(event termbox.Event, output chan<- interface{}) bool {
+					if event.Ch == 'Y' || event.Ch == 'y' || event.Key == termbox.KeyEnter {
 						if tab.editMode(output, true) {
 							output <- ScreenIndex(DATA_SCREEN_INDEX)
 						}
 						return true
 					}
-					return false
+					output <- ScreenIndex(DATA_SCREEN_INDEX)
+					return true
 				})
 			return false
 		}
@@ -345,7 +342,7 @@ func (tab *DataTab) editMode (output chan<- interface{}, confirmed bool) bool {
 	val := tab.editContent()
 	fix := tab.cursor.length()
 	if tab.cursor.mode == IntegerMode || tab.cursor.mode == FloatingPointMode || tab.cursor.mode == BitPatternMode {
-		fix = fix * 3 - 1
+		fix = fix*3 - 1
 		if tab.cursor.mode == BitPatternMode {
 			fix -= fix % 2
 		}
@@ -355,21 +352,21 @@ func (tab *DataTab) editMode (output chan<- interface{}, confirmed bool) bool {
 	tab.field_editor = &FieldEditor{
 		last_value: val,
 		init_value: tab.cursor.formatBytesAsNumber([]byte{0, 0, 0, 0}),
-		width: tab.cursor.length() * 3 - 1,
-		fixed: fix,
-		valid: true,
-		overwrite: true,
+		width:      tab.cursor.length()*3 - 1,
+		fixed:      fix,
+		valid:      true,
+		overwrite:  true,
 	}
 
 	return true
 }
 
-func (tab *DataTab) editContent () string {
-	val := tab.bytes[tab.cursor.pos : tab.cursor.pos + tab.cursor.length()]
+func (tab *DataTab) editContent() string {
+	val := tab.bytes[tab.cursor.pos : tab.cursor.pos+tab.cursor.length()]
 	return tab.cursor.formatBytesAsNumber(val)
 }
 
-func (tab *DataTab) updateEditedContent (value string) string {
+func (tab *DataTab) updateEditedContent(value string) string {
 	if len(value) == 0 {
 		tab.field_editor.valid = true
 		return ""
@@ -533,7 +530,7 @@ func (tab *DataTab) drawTab(style Style, vertical_offset int) {
 					y = height - widget_height
 				}
 			} else {
-				x = (width - 10) / 2 + 1
+				x = (width-10)/2 + 1
 				y = height - widget_height - 1
 			}
 		}
