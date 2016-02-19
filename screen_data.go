@@ -51,7 +51,10 @@ func (screen *DataScreen) receiveEvents(input <-chan termbox.Event, output chan<
 		do_quit := false
 		select {
 		case event := <-input:
-			output <- ScreenIndex(screen.handleKeyEvent(event, output))
+			idx := screen.handleKeyEvent(event, output)
+			if idx >= ABOUT_SCREEN_INDEX {
+				output <- ScreenIndex(idx)
+			}
 		case <-quit:
 			do_quit = true
 		}
@@ -67,7 +70,7 @@ func (screen *DataScreen) receiveEvents(input <-chan termbox.Event, output chan<
 func (screen *DataScreen) handleKeyEvent(event termbox.Event, output chan<- interface{}) int {
 	active_tab := screen.tabs[screen.active_tab]
 	if active_tab.field_editor != nil {
-		return active_tab.handleKeyEvent(event)
+		return active_tab.handleKeyEvent(event, output)
 	} else if event.Key == termbox.KeyCtrlLsqBracket { // color palette
 		return PALETTE_SCREEN_INDEX
 	} else if event.Ch == '?' { // about
@@ -127,7 +130,7 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event, output chan<- inte
 		}
 		return DATA_SCREEN_INDEX
 	}
-	return active_tab.handleKeyEvent(event)
+	return active_tab.handleKeyEvent(event, output)
 }
 
 func (screen *DataScreen) performLayout() {

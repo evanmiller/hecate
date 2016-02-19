@@ -52,8 +52,8 @@ type ScreenInstance struct {
 	quit   chan bool
 }
 
-func NewScreenInstance (screen Screen, cmds chan<- interface{}) ScreenInstance {
-	instance := ScreenInstance{
+func NewScreenInstance (screen Screen, cmds chan<- interface{}) *ScreenInstance {
+	instance := &ScreenInstance{
 		cmds: cmds,
 		screen: screen,
 		quit: make(chan bool, 10),
@@ -68,11 +68,11 @@ func NewScreenInstance (screen Screen, cmds chan<- interface{}) ScreenInstance {
 func mainLoop(files []FileInfo, style Style) {
 	main_key_channel := make(chan termbox.Event, 10)
 	command_channel := make(chan interface{})
-	var screens []ScreenInstance
+	var screens []*ScreenInstance
 	for _, s := range defaultScreensForFiles(files) {
 		screens = append(screens, NewScreenInstance(s, command_channel))
 	}
-	current := &screens[DATA_SCREEN_INDEX]
+	current := screens[DATA_SCREEN_INDEX]
 	//var last *ScreenInstance = nil
 
 	layoutAndDrawScreen(current.screen, style)
@@ -106,11 +106,14 @@ func mainLoop(files []FileInfo, style Style) {
 				new_screen_index := cmd.screenIndex()
 				if new_screen_index < len(screens) {
 					//last = current
-					current = &screens[new_screen_index]
+					current = screens[new_screen_index]
 					layoutAndDrawScreen(current.screen, style)
 				} else {
 					do_quit = true
 				}
+			case Screen:
+				current = NewScreenInstance(cmd, command_channel)
+				layoutAndDrawScreen(current.screen, style)
 			default:
 				fmt.Printf("unknown command: %T\n", cmd)
 			}
@@ -118,7 +121,7 @@ func mainLoop(files []FileInfo, style Style) {
 		if do_quit {
 			for _, s := range screens {
 				s.quit <- true
-				if current == &s {
+				if current == s {
 					current = nil
 				}
 			}

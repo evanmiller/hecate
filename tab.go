@@ -137,7 +137,7 @@ func (tab *DataTab) performLayout(width int, height int) {
 	tab.view_port = new_view_port
 }
 
-func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
+func (tab *DataTab) handleKeyEvent(event termbox.Event, output chan<- interface{}) int {
 	if tab.field_editor != nil {
 		tab.handleFieldEditor(event)
 	} else if event.Ch == 'q' || event.Key == termbox.KeyCtrlC {
@@ -172,7 +172,9 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 		tab.field_editor = &FieldEditor{ last_value: tab.prev_search, width: 10, valid: true }
 		tab.edit_mode = EditingSearch
 	} else if event.Key == termbox.KeyEnter {
-		tab.editMode()
+		if !tab.editMode(output, false) {
+			return -1
+		}
 	} else if event.Ch == '@' {
 		if tab.show_date {
 			tab.field_editor = &FieldEditor{ width: 10, valid: true }
@@ -306,13 +308,30 @@ func (tab *DataTab) handleFieldEditor (event termbox.Event) {
 	}
 }
 
-func (tab *DataTab) editMode () {
+func (tab *DataTab) editMode (output chan<- interface{}, confirmed bool) bool {
 	if !tab.file_info.rw {
 
-		// TODO: add confirm question
+		if !confirmed {
+			output <- ShowModal(
+				"Confirm read/write mode", "Unlock file for editing?    [ Y/n ]",
+				func (event termbox.Event, output chan<- interface{}) bool {
+					switch event.Ch {
+					case 'n':
+						output <- ScreenIndex(DATA_SCREEN_INDEX)
+						return true
+					case 'Y':
+						tab.editMode(output, true)
+						output <- ScreenIndex(DATA_SCREEN_INDEX)
+						return true
+					}
+					return false
+				})
+			return false
+		}
 
-		if tab.file_info.reopen(true) != nil {
-			return
+		if err := tab.file_info.reopen(true); err != nil {
+			output <- ShowMessage("Open file failed", err.Error())
+			return false
 		}
 
 		tab.bytes = tab.file_info.bytes
@@ -340,6 +359,8 @@ func (tab *DataTab) editMode () {
 		valid: true,
 		overwrite: true,
 	}
+
+	return true
 }
 
 func (tab *DataTab) editContent () string {
@@ -361,7 +382,7 @@ func (tab *DataTab) updateEditedContent (value string) string {
 	rescanned_data, rerest := scanEditedContent(scanned_value, tab.cursor)
 	tab.field_editor.valid = rerest == "" && rescanned_data == scanned_data
 	if tab.field_editor.valid {
-		copy(tab.bytes[tab.cursor.pos:], scanned_data)
+		copy(tab.bytes[tab.cursor.pos:], scanned_data[:tab.cursor.length()])
 	}
 	return value
 }
