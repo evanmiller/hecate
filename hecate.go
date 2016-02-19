@@ -45,31 +45,37 @@ func (file_info *FileInfo) reopen (read_write bool) error {
 	return err
 }
 
+type ScreenInstance struct {
+	screen Screen
+	events chan termbox.Event
+	cmds   chan<- interface{}
+	quit   chan bool
+}
+
+func NewScreenInstance (screen Screen, cmds chan<- interface{}) ScreenInstance {
+	instance := ScreenInstance{
+		cmds: cmds,
+		screen: screen,
+		quit: make(chan bool, 10),
+		events: make(chan termbox.Event, 10),
+	}
+	go func() {
+		screen.receiveEvents(instance.events, cmds, instance.quit)
+	}()
+	return instance
+}
+
 func mainLoop(files []FileInfo, style Style) {
-	screens := defaultScreensForFiles(files)
-	active_idx := DATA_SCREEN_INDEX
-
-	var screen_key_channels []chan termbox.Event
-	var screen_quit_channels []chan bool
-	command_channel := make(chan interface{})
 	main_key_channel := make(chan termbox.Event, 10)
-
-	layoutAndDrawScreen(screens[active_idx], style)
-
-	for _ = range screens {
-		key_channel := make(chan termbox.Event, 10)
-		screen_key_channels = append(screen_key_channels, key_channel)
-
-		quit_channel := make(chan bool, 10)
-		screen_quit_channels = append(screen_quit_channels, quit_channel)
+	command_channel := make(chan interface{})
+	var screens []ScreenInstance
+	for _, s := range defaultScreensForFiles(files) {
+		screens = append(screens, NewScreenInstance(s, command_channel))
 	}
+	current := &screens[DATA_SCREEN_INDEX]
+	//var last *ScreenInstance = nil
 
-	for i, s := range screens {
-		go func(index int, screen Screen) {
-			screen.receiveEvents(screen_key_channels[index], command_channel,
-				screen_quit_channels[index])
-		}(i, s)
-	}
+	layoutAndDrawScreen(current.screen, style)
 
 	go func() {
 		for {
@@ -89,18 +95,19 @@ func mainLoop(files []FileInfo, style Style) {
 			if event.Type == termbox.EventKey {
 				handleSpecialKeys(event.Key)
 
-				screen_key_channels[active_idx] <- event
+				current.events <- event
 			}
 			if event.Type == termbox.EventResize {
-				layoutAndDrawScreen(screens[active_idx], style)
+				layoutAndDrawScreen(current.screen, style)
 			}
 		case cmd := <-command_channel:
 			switch cmd := cmd.(type) {
 			case SwitchScreen:
 				new_screen_index := cmd.screenIndex()
 				if new_screen_index < len(screens) {
-					active_idx = new_screen_index
-					layoutAndDrawScreen(screens[active_idx], style)
+					//last = current
+					current = &screens[new_screen_index]
+					layoutAndDrawScreen(current.screen, style)
 				} else {
 					do_quit = true
 				}
@@ -109,8 +116,14 @@ func mainLoop(files []FileInfo, style Style) {
 			}
 		}
 		if do_quit {
-			for _, c := range screen_quit_channels {
-				c <- true
+			for _, s := range screens {
+				s.quit <- true
+				if current == &s {
+					current = nil
+				}
+			}
+			if current != nil {
+				current.quit <- true
 			}
 			termbox.Interrupt()
 			break
