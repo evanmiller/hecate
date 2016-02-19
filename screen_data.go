@@ -40,7 +40,7 @@ func (screen *DataScreen) initializeWithFiles(files []FileInfo) {
 	screen.show_tabs = true
 }
 
-func (screen *DataScreen) receiveEvents(input <-chan termbox.Event, output chan<- int, quit <-chan bool) {
+func (screen *DataScreen) receiveEvents(input <-chan termbox.Event, output chan<- interface{}, quit <-chan bool) {
 	for _, t := range screen.tabs {
 		go func(tab *DataTab) {
 			tab.receiveEvents(output)
@@ -51,7 +51,7 @@ func (screen *DataScreen) receiveEvents(input <-chan termbox.Event, output chan<
 		do_quit := false
 		select {
 		case event := <-input:
-			output <- screen.handleKeyEvent(event, output)
+			output <- ScreenIndex(screen.handleKeyEvent(event, output))
 		case <-quit:
 			do_quit = true
 		}
@@ -64,7 +64,7 @@ func (screen *DataScreen) receiveEvents(input <-chan termbox.Event, output chan<
 	}
 }
 
-func (screen *DataScreen) handleKeyEvent(event termbox.Event, output chan<- int) int {
+func (screen *DataScreen) handleKeyEvent(event termbox.Event, output chan<- interface{}) int {
 	active_tab := screen.tabs[screen.active_tab]
 	if active_tab.field_editor != nil {
 		return active_tab.handleKeyEvent(event)
@@ -83,7 +83,7 @@ func (screen *DataScreen) handleKeyEvent(event termbox.Event, output chan<- int)
 		for index, old_tab := range screen.tabs {
 			new_tabs = append(new_tabs, old_tab)
 			if old_tab == active_tab {
-				tab_copy := NewDataTab(FileInfo{filename: old_tab.filename, bytes: old_tab.bytes})
+				tab_copy := NewDataTab(old_tab.file_info)
 				tab_copy.cursor = old_tab.cursor
 				tab_copy.view_port = old_tab.view_port
 				tab_copy.cursor.pos = tab_copy.view_port.first_row * tab_copy.view_port.bytes_per_row
@@ -148,12 +148,12 @@ func (screen *DataScreen) performLayout() {
 	for index, tab := range screen.tabs {
 		if index == screen.active_tab {
 			active_tab_start_pos = tab_pos
-			for _ = range tab.filename {
+			for _ = range tab.file_info.baseName() {
 				active_tab_name_len++
 			}
 		}
 		tab_pos += 2 + 2*NAME_PADDING
-		for _ = range tab.filename {
+		for _ = range tab.file_info.baseName() {
 			tab_pos++
 		}
 	}
@@ -198,7 +198,7 @@ func (screen *DataScreen) drawScreen(style Style) {
 			}
 			x_pos++
 
-			nameLength := drawStringAtPoint(tab.filename, x_pos+NAME_PADDING, 1, name_fg, bg)
+			nameLength := drawStringAtPoint(tab.file_info.baseName(), x_pos+NAME_PADDING, 1, name_fg, bg)
 			for i := 0; i < 2*NAME_PADDING+nameLength; i++ {
 				drawStringAtPoint("─", x_pos, 0, fg, bg)
 				if tab != active_tab {

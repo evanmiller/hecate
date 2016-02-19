@@ -3,7 +3,7 @@ package main
 import "github.com/nsf/termbox-go"
 
 type Screen interface {
-	receiveEvents(input <-chan termbox.Event, output chan<- int, quit <-chan bool)
+	receiveEvents(input <-chan termbox.Event, output chan<- interface{}, quit <-chan bool)
 	performLayout()
 	drawScreen(style Style)
 }

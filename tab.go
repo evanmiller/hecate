@@ -30,7 +30,7 @@ type DataViewPort struct {
 }
 
 type DataTab struct {
-	filename                string
+	file_info               FileInfo
 	bytes                   []byte
 	cursor                  Cursor
 	hilite                  ByteRange
@@ -64,15 +64,15 @@ func NewDataTab(file FileInfo) DataTab {
 		search_quit_channel:     make(chan bool),
 		search_progress_channel: make(chan int),
 		quit_channel:            make(chan bool, 10),
+		file_info:               file,
 		bytes:                   file.bytes,
-		filename:                file.filename,
 		cursor:                  cursor,
 		hilite:                  cursor.highlightRange(file.bytes),
 		prev_mode:               cursor.mode,
 	}
 }
 
-func (tab *DataTab) receiveEvents(output chan<- int) {
+func (tab *DataTab) receiveEvents(output chan<- interface{}) {
 	for {
 		do_quit := false
 		select {
@@ -81,7 +81,7 @@ func (tab *DataTab) receiveEvents(output chan<- int) {
 			if tab.search_progress > 1.0 {
 				tab.search_progress = 0.0
 			}
-			output <- DATA_SCREEN_INDEX
+			output <- ScreenIndex(DATA_SCREEN_INDEX)
 		case search_result := <-tab.search_result_channel:
 			tab.is_searching = false
 			tab.search_progress = 0.0
@@ -90,7 +90,7 @@ func (tab *DataTab) receiveEvents(output chan<- int) {
 				tab.cursor.max_pos = len(tab.bytes)
 				tab.hilite = tab.cursor.highlightRange(tab.bytes)
 			}
-			output <- DATA_SCREEN_INDEX
+			output <- ScreenIndex(DATA_SCREEN_INDEX)
 		case <-tab.quit_channel:
 			do_quit = true
 		}
@@ -139,52 +139,7 @@ func (tab *DataTab) performLayout(width int, height int) {
 
 func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 	if tab.field_editor != nil {
-		new_pos := -1
-		is_done := tab.field_editor.handleKeyEvent(event)
-		if is_done {
-			string_value := tab.field_editor.getValue()
-			if len(string_value) > 0 {
-				if tab.edit_mode == EditingSearch {
-					tab.is_searching = true
-					tab.search_progress = 0.0
-					tab.prev_search = string_value
-					go func() {
-						cursor := scanSearchString(string_value, tab.bytes, tab.cursor,
-							tab.search_quit_channel, tab.search_progress_channel)
-						tab.search_result_channel <- cursor
-					}()
-				} else if tab.edit_mode == EditingOffset {
-					new_pos = scanOffset(string_value, tab.cursor.pos)
-				} else if tab.edit_mode == EditingEpoch {
-					tab.cursor.epoch_time = scanEpoch(string_value, tab.cursor.epoch_time)
-				}
-			} else if tab.edit_mode == EditingContent {
-				tab.updateEditedContent(tab.field_editor.getValue())
-			}
-			tab.edit_mode = 0
-			tab.field_editor = nil
-		} else if tab.edit_mode == EditingContent {
-			new_value := tab.updateEditedContent(tab.field_editor.getValue())
-			delta_pos := 0
-			if tab.field_editor.at_eol {
-				delta_pos = tab.cursor.length()
-			} else if tab.field_editor.at_bol {
-				delta_pos = -tab.cursor.length()
-			}
-
-			if delta_pos != 0 {
-				tab.cursor.move(delta_pos)
-				tab.field_editor.setValue(nil)
-				tab.field_editor.last_value = tab.editContent()
-			} else if len(tab.field_editor.value) > 0 {
-				if tab.field_editor.valid {
-					tab.field_editor.setValue([]rune(new_value))
-				}
-			}
-		}
-		if new_pos >= 0 {
-			tab.cursor.setPos(new_pos)
-		}
+		tab.handleFieldEditor(event)
 	} else if event.Ch == 'q' || event.Key == termbox.KeyCtrlC {
 		if tab.is_searching {
 			tab.search_quit_channel <- true
@@ -217,26 +172,7 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 		tab.field_editor = &FieldEditor{ last_value: tab.prev_search, width: 10, valid: true }
 		tab.edit_mode = EditingSearch
 	} else if event.Key == termbox.KeyEnter {
-		if tab.is_searching {
-			tab.search_quit_channel <- true
-		}
-		val := tab.editContent()
-		fix := tab.cursor.length()
-		if tab.cursor.mode == IntegerMode || tab.cursor.mode == FloatingPointMode || tab.cursor.mode == BitPatternMode {
-			fix = fix * 3 - 1
-			if tab.cursor.mode == BitPatternMode {
-				fix--
-			}
-		}
-		tab.field_editor = &FieldEditor{
-			last_value: val,
-			init_value: tab.cursor.formatBytesAsNumber([]byte{0, 0, 0, 0}),
-			width: tab.cursor.length() * 3 - 1,
-			fixed: fix,
-			valid: true,
-			overwrite: true,
-		}
-		tab.edit_mode = EditingContent
+		tab.editMode()
 	} else if event.Ch == '@' {
 		if tab.show_date {
 			tab.field_editor = &FieldEditor{ width: 10, valid: true }
@@ -319,6 +255,91 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 	}
 
 	return DATA_SCREEN_INDEX
+}
+
+func (tab *DataTab) handleFieldEditor (event termbox.Event) {
+	new_pos := -1
+	is_done := tab.field_editor.handleKeyEvent(event)
+	if is_done {
+		string_value := tab.field_editor.getValue()
+		if len(string_value) > 0 {
+			if tab.edit_mode == EditingSearch {
+				tab.is_searching = true
+				tab.search_progress = 0.0
+				tab.prev_search = string_value
+				go func() {
+					cursor := scanSearchString(string_value, tab.bytes, tab.cursor,
+						tab.search_quit_channel, tab.search_progress_channel)
+					tab.search_result_channel <- cursor
+				}()
+			} else if tab.edit_mode == EditingOffset {
+				new_pos = scanOffset(string_value, tab.cursor.pos)
+			} else if tab.edit_mode == EditingEpoch {
+				tab.cursor.epoch_time = scanEpoch(string_value, tab.cursor.epoch_time)
+			}
+		} else if tab.edit_mode == EditingContent {
+			tab.updateEditedContent(tab.field_editor.getValue())
+		}
+		tab.edit_mode = 0
+		tab.field_editor = nil
+	} else if tab.edit_mode == EditingContent {
+		new_value := tab.updateEditedContent(tab.field_editor.getValue())
+		delta_pos := 0
+		if tab.field_editor.at_eol {
+			delta_pos = tab.cursor.length()
+		} else if tab.field_editor.at_bol {
+			delta_pos = -tab.cursor.length()
+		}
+
+		if delta_pos != 0 {
+			tab.cursor.move(delta_pos)
+			tab.field_editor.setValue(nil)
+			tab.field_editor.last_value = tab.editContent()
+		} else if len(tab.field_editor.value) > 0 {
+			if tab.field_editor.valid {
+				tab.field_editor.setValue([]rune(new_value))
+			}
+		}
+	}
+	if new_pos >= 0 {
+		tab.cursor.setPos(new_pos)
+	}
+}
+
+func (tab *DataTab) editMode () {
+	if !tab.file_info.rw {
+
+		// TODO: add confirm question
+
+		if tab.file_info.reopen(true) != nil {
+			return
+		}
+
+		tab.bytes = tab.file_info.bytes
+	}
+
+	if tab.is_searching {
+		tab.search_quit_channel <- true
+	}
+
+	val := tab.editContent()
+	fix := tab.cursor.length()
+	if tab.cursor.mode == IntegerMode || tab.cursor.mode == FloatingPointMode || tab.cursor.mode == BitPatternMode {
+		fix = fix * 3 - 1
+		if tab.cursor.mode == BitPatternMode {
+			fix--
+		}
+	}
+
+	tab.edit_mode = EditingContent
+	tab.field_editor = &FieldEditor{
+		last_value: val,
+		init_value: tab.cursor.formatBytesAsNumber([]byte{0, 0, 0, 0}),
+		width: tab.cursor.length() * 3 - 1,
+		fixed: fix,
+		valid: true,
+		overwrite: true,
+	}
 }
 
 func (tab *DataTab) editContent () string {
