@@ -37,6 +37,7 @@ type ByteRange struct {
 
 type Cursor struct {
 	pos        int
+	max_pos    int
 	int_length int
 	fp_length  int
 	bit_length int
@@ -173,43 +174,49 @@ func (cursor *Cursor) interpretBytesAsInteger(data []byte) uint64 {
 }
 
 func (cursor *Cursor) formatBytesAsNumber(data []byte) string {
-	str := ""
 	integer := cursor.interpretBytesAsInteger(data)
 	if cursor.mode == IntegerMode {
 		if cursor.int_length == 1 {
 			if cursor.unsigned {
-				str = fmt.Sprintf("%d", uint8(integer))
+				return fmt.Sprintf("%d", uint8(integer))
 			} else {
-				str = fmt.Sprintf("%d", int8(integer))
+				return fmt.Sprintf("%d", int8(integer))
 			}
 		} else if cursor.int_length == 2 {
 			if cursor.unsigned {
-				str = fmt.Sprintf("%d", uint16(integer))
+				return fmt.Sprintf("%d", uint16(integer))
 			} else {
-				str = fmt.Sprintf("%d", int16(integer))
+				return fmt.Sprintf("%d", int16(integer))
 			}
 		} else if cursor.int_length == 4 {
 			if cursor.unsigned {
-				str = fmt.Sprintf("%d", uint32(integer))
+				return fmt.Sprintf("%d", uint32(integer))
 			} else {
-				str = fmt.Sprintf("%d", int32(integer))
+				return fmt.Sprintf("%d", int32(integer))
 			}
 		} else if cursor.int_length == 8 {
 			if cursor.unsigned {
-				str = fmt.Sprintf("%d", uint64(integer))
+				return fmt.Sprintf("%d", uint64(integer))
 			} else {
-				str = fmt.Sprintf("%d", int64(integer))
+				return fmt.Sprintf("%d", int64(integer))
 			}
 		}
 	} else if cursor.mode == FloatingPointMode {
 		if cursor.fp_length == 4 {
 			var integer32 uint32 = uint32(integer)
-			str = fmt.Sprintf("%.5g", math.Float32frombits(integer32))
+			return fmt.Sprintf("%.5g", math.Float32frombits(integer32))
 		} else if cursor.fp_length == 8 {
-			str = fmt.Sprintf("%g", math.Float64frombits(integer))
+			return fmt.Sprintf("%g", math.Float64frombits(integer))
 		}
+	} else if cursor.mode == BitPatternMode {
+		str := ""
+		for i := 0; i < cursor.bit_length; i++ {
+			str = fmt.Sprintf("%s%02x", str, data[i])
+		}
+		return str
 	}
-	return str
+
+	return string(data)
 }
 
 func (cursor *Cursor) interpretBytesAsTime(data []byte) time.Time {
@@ -237,4 +244,17 @@ func (cursor *Cursor) interpretBytesAsTime(data []byte) time.Time {
 		date_time = cursor.epoch_time
 	}
 	return date_time.UTC()
+}
+
+func (cursor *Cursor) setPos (pos int) {
+	if pos < 0 {
+		pos = 0
+	} else if pos + cursor.length() > cursor.max_pos {
+		pos = cursor.max_pos - cursor.length()
+	}
+	cursor.pos = pos
+}
+
+func (cursor *Cursor) move (delta int) {
+	cursor.setPos (cursor.pos + delta)
 }

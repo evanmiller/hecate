@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"time"
-
+	"strings"
 	"github.com/nsf/termbox-go"
 )
 
@@ -18,6 +18,7 @@ const (
 	EditingOffset EditMode = iota + 1
 	EditingSearch
 	EditingEpoch
+	EditingContent
 )
 
 type EditMode int
@@ -29,7 +30,7 @@ type DataViewPort struct {
 }
 
 type DataTab struct {
-	filename                string
+	file_info               FileInfo
 	bytes                   []byte
 	cursor                  Cursor
 	hilite                  ByteRange
@@ -48,23 +49,30 @@ type DataTab struct {
 }
 
 func NewDataTab(file FileInfo) DataTab {
-	cursor := Cursor{int_length: 4, fp_length: 4, bit_length: 1, mode: StringMode,
-		epoch_unit: SecondsSinceEpoch, epoch_time: time.Unix(0, 0).UTC()}
+	cursor := Cursor{
+		int_length: 4,
+		fp_length: 4,
+		bit_length: 1,
+		mode: StringMode,
+		max_pos: len(file.bytes),
+		epoch_unit: SecondsSinceEpoch,
+		epoch_time: time.Unix(0, 0).UTC(),
+	}
 
 	return DataTab{
 		search_result_channel:   make(chan *Cursor),
 		search_quit_channel:     make(chan bool),
 		search_progress_channel: make(chan int),
 		quit_channel:            make(chan bool, 10),
+		file_info:               file,
 		bytes:                   file.bytes,
-		filename:                file.filename,
 		cursor:                  cursor,
 		hilite:                  cursor.highlightRange(file.bytes),
 		prev_mode:               cursor.mode,
 	}
 }
 
-func (tab *DataTab) receiveEvents(output chan<- int) {
+func (tab *DataTab) receiveEvents(output chan<- interface{}) {
 	for {
 		do_quit := false
 		select {
@@ -73,15 +81,16 @@ func (tab *DataTab) receiveEvents(output chan<- int) {
 			if tab.search_progress > 1.0 {
 				tab.search_progress = 0.0
 			}
-			output <- DATA_SCREEN_INDEX
+			output <- ScreenIndex(DATA_SCREEN_INDEX)
 		case search_result := <-tab.search_result_channel:
 			tab.is_searching = false
 			tab.search_progress = 0.0
 			if search_result != nil {
 				tab.cursor = *search_result
+				tab.cursor.max_pos = len(tab.bytes)
 				tab.hilite = tab.cursor.highlightRange(tab.bytes)
 			}
-			output <- DATA_SCREEN_INDEX
+			output <- ScreenIndex(DATA_SCREEN_INDEX)
 		case <-tab.quit_channel:
 			do_quit = true
 		}
@@ -128,33 +137,9 @@ func (tab *DataTab) performLayout(width int, height int) {
 	tab.view_port = new_view_port
 }
 
-func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
+func (tab *DataTab) handleKeyEvent(event termbox.Event, output chan<- interface{}) int {
 	if tab.field_editor != nil {
-		new_pos := -1
-		string_value, is_done := tab.field_editor.handleKeyEvent(event)
-		if is_done {
-			if len(string_value) > 0 {
-				if tab.edit_mode == EditingSearch {
-					tab.is_searching = true
-					tab.search_progress = 0.0
-					tab.prev_search = string_value
-					go func() {
-						cursor := scanSearchString(string_value, tab.bytes, tab.cursor,
-							tab.search_quit_channel, tab.search_progress_channel)
-						tab.search_result_channel <- cursor
-					}()
-				} else if tab.edit_mode == EditingOffset {
-					new_pos = scanOffset(string_value, tab.cursor.pos)
-				} else if tab.edit_mode == EditingEpoch {
-					tab.cursor.epoch_time = scanEpoch(string_value, tab.cursor.epoch_time)
-				}
-			}
-			tab.edit_mode = 0
-			tab.field_editor = nil
-		}
-		if new_pos >= 0 {
-			tab.cursor.pos = new_pos
-		}
+		tab.handleFieldEditor(event)
 	} else if event.Ch == 'q' || event.Key == termbox.KeyCtrlC {
 		if tab.is_searching {
 			tab.search_quit_channel <- true
@@ -178,17 +163,21 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 		if tab.is_searching {
 			tab.search_quit_channel <- true
 		}
-		tab.field_editor = &FieldEditor{ width: 10 }
+		tab.field_editor = &FieldEditor{ width: 10, valid: true }
 		tab.edit_mode = EditingOffset
 	} else if event.Ch == '/' {
 		if tab.is_searching {
 			tab.search_quit_channel <- true
 		}
-		tab.field_editor = &FieldEditor{ last_value: tab.prev_search, width: 10 }
+		tab.field_editor = &FieldEditor{ last_value: tab.prev_search, width: 10, valid: true }
 		tab.edit_mode = EditingSearch
+	} else if event.Key == termbox.KeyEnter {
+		if !tab.editMode(output, false) {
+			return -1
+		}
 	} else if event.Ch == '@' {
 		if tab.show_date {
-			tab.field_editor = new(FieldEditor)
+			tab.field_editor = &FieldEditor{ width: 10, valid: true }
 			tab.edit_mode = EditingEpoch
 		}
 	} else if event.Ch == 'x' {
@@ -204,29 +193,29 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 			tab.cursor.epoch_unit = DaysSinceEpoch
 		}
 	} else if event.Ch == 'j' || event.Key == termbox.KeyArrowDown { // down
-		tab.cursor.pos += tab.view_port.bytes_per_row
+		tab.cursor.move(tab.view_port.bytes_per_row)
 	} else if event.Key == termbox.KeyCtrlF || event.Key == termbox.KeyPgdn { // page down
-		tab.cursor.pos += tab.view_port.bytes_per_row * tab.view_port.number_of_rows
+		tab.cursor.move(tab.view_port.bytes_per_row * tab.view_port.number_of_rows)
 	} else if event.Ch == 'k' || event.Key == termbox.KeyArrowUp { // up
-		tab.cursor.pos -= tab.view_port.bytes_per_row
+		tab.cursor.move(-tab.view_port.bytes_per_row)
 	} else if event.Key == termbox.KeyCtrlB || event.Key == termbox.KeyPgup { // page up
-		tab.cursor.pos -= tab.view_port.bytes_per_row * tab.view_port.number_of_rows
+		tab.cursor.move(-tab.view_port.bytes_per_row * tab.view_port.number_of_rows)
 	} else if event.Ch == 'h' || event.Key == termbox.KeyArrowLeft { // left
-		tab.cursor.pos--
+		tab.cursor.move(-1)
 	} else if event.Ch == 'l' || event.Key == termbox.KeyArrowRight { // right
-		tab.cursor.pos++
+		tab.cursor.move(1)
 	} else if event.Ch == 'w' { /* forward 1 "word" */
-		tab.cursor.pos += 4
+		tab.cursor.move(4)
 	} else if event.Ch == 'b' { /* back 1 "word" */
-		tab.cursor.pos -= 4
+		tab.cursor.move(-4)
 	} else if event.Ch == 'g' {
-		tab.cursor.pos = 0
+		tab.cursor.setPos(0)
 	} else if event.Ch == 'G' {
-		tab.cursor.pos = len(tab.bytes)
+		tab.cursor.setPos(len(tab.bytes))
 	} else if event.Ch == '^' {
-		tab.cursor.pos = tab.cursor.pos / tab.view_port.bytes_per_row * tab.view_port.bytes_per_row
+		tab.cursor.setPos(tab.cursor.pos / tab.view_port.bytes_per_row * tab.view_port.bytes_per_row)
 	} else if event.Ch == '$' {
-		tab.cursor.pos = (tab.cursor.pos/tab.view_port.bytes_per_row+1)*tab.view_port.bytes_per_row - tab.cursor.length()
+		tab.cursor.setPos((tab.cursor.pos/tab.view_port.bytes_per_row+1)*tab.view_port.bytes_per_row - tab.cursor.length())
 	} else if modes[event.Ch] != 0 {
 		if tab.cursor.mode == modes[event.Ch] {
 			tab.cursor.mode = tab.prev_mode
@@ -251,27 +240,152 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event) int {
 		if (tab.view_port.first_row+1)*tab.view_port.bytes_per_row < len(tab.bytes) {
 			tab.view_port.first_row++
 			if tab.cursor.pos < tab.view_port.first_row*tab.view_port.bytes_per_row {
-				tab.cursor.pos += tab.view_port.bytes_per_row
+				tab.cursor.move(tab.view_port.bytes_per_row)
 			}
 		}
 	} else if event.Key == termbox.KeyCtrlY { /* scroll up */
 		tab.view_port.first_row--
 		if tab.cursor.pos > (tab.view_port.first_row+tab.view_port.number_of_rows)*tab.view_port.bytes_per_row {
-			tab.cursor.pos -= tab.view_port.bytes_per_row
+			tab.cursor.move(-tab.view_port.bytes_per_row)
 		}
 	}
-	if tab.cursor.pos < 0 {
-		tab.cursor.pos = 0
-	}
-	if tab.cursor.pos+tab.cursor.length() > len(tab.bytes) {
-		tab.cursor.pos = len(tab.bytes) - tab.cursor.length()
-	}
+
 	tab.hilite = tab.cursor.highlightRange(tab.bytes)
+
 	if tab.field_editor == nil {
 		termbox.HideCursor()
 	}
 
 	return DATA_SCREEN_INDEX
+}
+
+func (tab *DataTab) handleFieldEditor (event termbox.Event) {
+	new_pos := -1
+	is_done := tab.field_editor.handleKeyEvent(event)
+	if is_done {
+		string_value := tab.field_editor.getValue()
+		if len(string_value) > 0 {
+			if tab.edit_mode == EditingSearch {
+				tab.is_searching = true
+				tab.search_progress = 0.0
+				tab.prev_search = string_value
+				go func() {
+					cursor := scanSearchString(string_value, tab.bytes, tab.cursor,
+						tab.search_quit_channel, tab.search_progress_channel)
+					tab.search_result_channel <- cursor
+				}()
+			} else if tab.edit_mode == EditingOffset {
+				new_pos = scanOffset(string_value, tab.cursor.pos)
+			} else if tab.edit_mode == EditingEpoch {
+				tab.cursor.epoch_time = scanEpoch(string_value, tab.cursor.epoch_time)
+			}
+		} else if tab.edit_mode == EditingContent {
+			tab.updateEditedContent(tab.field_editor.getValue())
+		}
+		tab.edit_mode = 0
+		tab.field_editor = nil
+	} else if tab.edit_mode == EditingContent {
+		new_value := tab.updateEditedContent(tab.field_editor.getValue())
+		delta_pos := 0
+		if tab.field_editor.at_eol {
+			delta_pos = tab.cursor.length()
+		} else if tab.field_editor.at_bol {
+			delta_pos = -tab.cursor.length()
+		}
+
+		if delta_pos != 0 {
+			tab.cursor.move(delta_pos)
+			tab.field_editor.setValue(nil)
+			tab.field_editor.last_value = tab.editContent()
+		} else if len(tab.field_editor.value) > 0 {
+			if tab.field_editor.valid {
+				tab.field_editor.setValue([]rune(new_value))
+			}
+		}
+	}
+	if new_pos >= 0 {
+		tab.cursor.setPos(new_pos)
+	}
+}
+
+func (tab *DataTab) editMode (output chan<- interface{}, confirmed bool) bool {
+	if !tab.file_info.rw {
+
+		if !confirmed {
+			output <- ShowModal(
+				"Confirm read/write mode", "Unlock file for editing?    [ Y/n ]",
+				func (event termbox.Event, output chan<- interface{}) bool {
+					switch event.Ch {
+					case 'n':
+						output <- ScreenIndex(DATA_SCREEN_INDEX)
+						return true
+					case 'Y':
+						if tab.editMode(output, true) {
+							output <- ScreenIndex(DATA_SCREEN_INDEX)
+						}
+						return true
+					}
+					return false
+				})
+			return false
+		}
+
+		if err := tab.file_info.reopen(true); err != nil {
+			output <- ShowMessage("Open file for reading failed", strings.Join(strings.SplitAfterN(err.Error(), ":", 2), "\n"))
+			return false
+		}
+
+		tab.bytes = tab.file_info.bytes
+	}
+
+	if tab.is_searching {
+		tab.search_quit_channel <- true
+	}
+
+	val := tab.editContent()
+	fix := tab.cursor.length()
+	if tab.cursor.mode == IntegerMode || tab.cursor.mode == FloatingPointMode || tab.cursor.mode == BitPatternMode {
+		fix = fix * 3 - 1
+		if tab.cursor.mode == BitPatternMode {
+			fix -= fix % 2
+		}
+	}
+
+	tab.edit_mode = EditingContent
+	tab.field_editor = &FieldEditor{
+		last_value: val,
+		init_value: tab.cursor.formatBytesAsNumber([]byte{0, 0, 0, 0}),
+		width: tab.cursor.length() * 3 - 1,
+		fixed: fix,
+		valid: true,
+		overwrite: true,
+	}
+
+	return true
+}
+
+func (tab *DataTab) editContent () string {
+	val := tab.bytes[tab.cursor.pos : tab.cursor.pos + tab.cursor.length()]
+	return tab.cursor.formatBytesAsNumber(val)
+}
+
+func (tab *DataTab) updateEditedContent (value string) string {
+	if len(value) == 0 {
+		tab.field_editor.valid = true
+		return ""
+	}
+	scanned_data, rest := scanEditedContent(value, tab.cursor)
+	if len(rest) > 0 {
+		tab.field_editor.valid = false
+		return ""
+	}
+	scanned_value := tab.cursor.formatBytesAsNumber([]byte(scanned_data))
+	rescanned_data, rerest := scanEditedContent(scanned_value, tab.cursor)
+	tab.field_editor.valid = rerest == "" && rescanned_data == scanned_data
+	if tab.field_editor.valid {
+		copy(tab.bytes[tab.cursor.pos:], scanned_data[:tab.cursor.length()])
+	}
+	return value
 }
 
 func (tab *DataTab) drawTab(style Style, vertical_offset int) {
@@ -337,7 +451,8 @@ func (tab *DataTab) drawTab(style Style, vertical_offset int) {
 			} else {
 				termbox.SetCell(x, y+1, ' ', 0, rune_bg)
 			}
-		} else if index == cursor.pos {
+		}
+		if index == cursor.pos {
 			cursor_x = x
 			cursor_y = y
 		}
@@ -347,19 +462,21 @@ func (tab *DataTab) drawTab(style Style, vertical_offset int) {
 	}
 
 	if cursor.mode == BitPatternMode {
+		x_copy := cursor_x
+		y_copy := cursor_y
 		if cursor_length == 1 || (cursor.pos+1)%view_port.bytes_per_row == 0 {
 			for j := 0; j < cursor_length; j++ {
 				b := tab.bytes[cursor.pos+j]
 				for i := 0; i < 8; i++ {
 					if b&(1<<uint8(7-i)) > 0 {
-						termbox.SetCell(cursor_x-1+(i%4), cursor_y+1+i/4, style.filled_bit_rune, style.bit_fg, rune_bg)
+						termbox.SetCell(x_copy-1+(i%4), y_copy+1+i/4, style.filled_bit_rune, style.bit_fg, rune_bg)
 					} else {
-						termbox.SetCell(cursor_x-1+(i%4), cursor_y+1+i/4, style.empty_bit_rune, style.bit_fg, rune_bg)
+						termbox.SetCell(x_copy-1+(i%4), y_copy+1+i/4, style.empty_bit_rune, style.bit_fg, rune_bg)
 					}
 				}
-				cursor_x = start_x
-				cursor_y += line_height
-				if cursor_y > last_y {
+				x_copy = start_x
+				y_copy += line_height
+				if y_copy > last_y {
 					break
 				}
 			}
@@ -368,9 +485,9 @@ func (tab *DataTab) drawTab(style Style, vertical_offset int) {
 				b := tab.bytes[cursor.pos+j]
 				for i := 0; i < 8; i++ {
 					if b&(1<<uint8(7-i)) > 0 {
-						termbox.SetCell(cursor_x-1+i, cursor_y+j+1, style.filled_bit_rune, style.bit_fg, rune_bg)
+						termbox.SetCell(x_copy-1+i, y_copy+j+1, style.filled_bit_rune, style.bit_fg, rune_bg)
 					} else {
-						termbox.SetCell(cursor_x-1+i, cursor_y+j+1, style.empty_bit_rune, style.bit_fg, rune_bg)
+						termbox.SetCell(x_copy-1+i, y_copy+j+1, style.empty_bit_rune, style.bit_fg, rune_bg)
 					}
 				}
 			}
@@ -399,20 +516,27 @@ func (tab *DataTab) drawTab(style Style, vertical_offset int) {
 	}
 
 	if tab.field_editor != nil {
-		widget_width := layout.width()
-		widget_height := layout.widget_size.height
-		if layout.pressure < 4 {
-			x = (width-widget_width)/2 + widget_width - 11
-			if tab.edit_mode == EditingEpoch {
-				y = height - 1
-			} else {
-				y = height - widget_height
+		if tab.edit_mode == EditingContent {
+			x = cursor_x - 1
+			y = cursor_y
+			if tab.cursor.mode != BitPatternMode {
+				y++
 			}
 		} else {
-			x = (width - 10) / 2
-			y = height - widget_height - 1
+			widget_width := layout.width()
+			widget_height := layout.widget_size.height
+			if layout.pressure < 4 {
+				x = (width-widget_width)/2 + widget_width - 10
+				if tab.edit_mode == EditingEpoch {
+					y = height - 1
+				} else {
+					y = height - widget_height
+				}
+			} else {
+				x = (width - 10) / 2 + 1
+				y = height - widget_height - 1
+			}
 		}
-
 		tab.field_editor.drawFieldValueAtPoint(style, x, y)
 	}
 }

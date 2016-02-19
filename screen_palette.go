@@ -8,12 +8,12 @@ import (
 
 type PaletteScreen int
 
-func (screen *PaletteScreen) receiveEvents(input <-chan termbox.Event, output chan<- int, quit <-chan bool) {
+func (screen *PaletteScreen) receiveEvents(input <-chan termbox.Event, output chan<- interface{}, quit <-chan bool) {
 	for {
 		do_quit := false
 		select {
 		case <-input:
-			output <- DATA_SCREEN_INDEX
+			output <- ScreenIndex(DATA_SCREEN_INDEX)
 		case <-quit:
 			do_quit = true
 		}

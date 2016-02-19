@@ -129,3 +129,65 @@ func scanSearchString(value string, bytes []byte, cursor Cursor, quit <-chan boo
 	}
 	return &first_cursor
 }
+
+func scanEditedContent (value string, cursor Cursor) (string, string) {
+	if len(value) == 0 {
+		return "", ""
+	}
+
+	result, rest_of_value := value, ""
+	if cursor.mode == IntegerMode {
+		var scanned_int int64
+		if n, _ := fmt.Sscanf(value, "%d%s", &scanned_int, &rest_of_value); n < 1 {
+			return "", value
+		}
+		if cursor.int_length == 1 {
+			if cursor.unsigned {
+				result = binaryStringForInteger8(uint8(scanned_int))
+			} else {
+				result = binaryStringForInteger8(uint8(scanned_int))
+			}
+		} else if cursor.int_length == 2 {
+			if cursor.unsigned {
+				result = binaryStringForInteger16(uint16(scanned_int), cursor.big_endian)
+			} else {
+				result = binaryStringForInteger16(uint16(scanned_int), cursor.big_endian)
+			}
+		} else if cursor.int_length == 4 {
+			if cursor.unsigned {
+				result = binaryStringForInteger32(uint32(scanned_int), cursor.big_endian)
+			} else {
+				result = binaryStringForInteger32(uint32(scanned_int), cursor.big_endian)
+			}
+		} else if cursor.int_length == 8 {
+			if cursor.unsigned {
+				result = binaryStringForInteger64(uint64(scanned_int), cursor.big_endian)
+			} else {
+				result = binaryStringForInteger64(uint64(scanned_int), cursor.big_endian)
+			}
+		}
+	} else if cursor.mode == FloatingPointMode {
+		var scanned_fp float64
+		if n, _ := fmt.Sscanf(value, "%g%s", &scanned_fp, &rest_of_value); n < 1 {
+			return "", value
+		}
+		if cursor.fp_length == 4 {
+			result = binaryStringForInteger32(math.Float32bits(float32(scanned_fp)), cursor.big_endian)
+		} else if cursor.fp_length == 8 {
+			result = binaryStringForInteger64(math.Float64bits(scanned_fp), cursor.big_endian)
+		}
+	} else if cursor.mode == BitPatternMode {
+		var scanned_int int64
+		scan_fmt := "%" + string('0' + (cursor.bit_length * 2)) + "x%s"
+		if n, _ := fmt.Sscanf(value, scan_fmt, &scanned_int, &rest_of_value); n < 1 {
+			return "", value
+		}
+		if cursor.bit_length == 1 {
+			result = binaryStringForInteger8(uint8(scanned_int))
+		} else if cursor.bit_length == 2 {
+			result = binaryStringForInteger16(uint16(scanned_int), true)
+		}
+	}
+
+	return result, rest_of_value
+}

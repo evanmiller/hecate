@@ -33,17 +33,17 @@ func drawCommandsAtPoint(commands []Command, x int, y int, style Style) {
 	}
 }
 
-func (screen *AboutScreen) receiveEvents(input <-chan termbox.Event, output chan<- int, quit <-chan bool) {
+func (screen *AboutScreen) receiveEvents(input <-chan termbox.Event, output chan<- interface{}, quit <-chan bool) {
 	for {
 		do_quit := false
 		select {
 		case event := <-input:
 			if event.Key == termbox.KeyCtrlR {
 				screen.show_html = !screen.show_html
-				output <- ABOUT_SCREEN_INDEX
+				output <- ScreenIndex(ABOUT_SCREEN_INDEX)
 			} else {
 				screen.show_html = false
-				output <- DATA_SCREEN_INDEX
+				output <- ScreenIndex(DATA_SCREEN_INDEX)
 			}
 		case <-quit:
 			do_quit = true
@@ -132,6 +132,7 @@ func (screen *AboutScreen) drawScreen(style Style) {
 		{"ctrl-f", "page down"},
 		{"ctrl-b", "page up"},
 
+		{"enter", "edit mode"},
 		{"?", "this screen"},
 		{"q", "quit program"},
 	}
