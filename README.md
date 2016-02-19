@@ -6,21 +6,22 @@ Usage:
     go get -u github.com/evanmiller/hecate
     $GOPATH/bin/hecate file1 [file2 [...]]
 
-Hecate is not actually a hex editor, only a viewer. It is a terminal program
-(written in Go) with tabbed browsing, large-file support, full-file searching,
-and Vim-like controls.  Place the cursor over some bytes and choose a mode
-(**t** for text, **p** for a bit pattern, **i** for an integer, **f** for a
-floating point) to see what those bytes represent. Toggle endianness with **e**
-and signedness with **u**.
+Hecate is a hex editor designed for reverse engineering file formats without
+leaving the comfort of your terminal window. Hecate (pronounced HECK-it)
+features tabbed browsing, in-place editing, large-file support, full-file
+searching, and Vim-like controls.  Place the cursor over some bytes and choose
+a mode (**t** for text, **p** for a bit pattern, **i** for an integer, **f**
+for a floating point) to see what those bytes represent. Toggle endianness with
+**e** and signedness with **u**. Press **enter** to edit.
 
 
 ### Editing
 
-Pressing **enter** brings up an edit field for the data under the
-cursor. Press **enter** again to exit edit mode. Pressing **esc**
-cancels any changes on the current position, otherwise exits edit
-mode. Navigating passed the edges of the field moves the cursor. The
-expected format depends on the cursor mode when entering edit mode.
+Pressing **enter** brings up an edit field for the data under the cursor. Make
+changes and press **enter** again to write changes to disk. Pressing **esc**
+cancels any changes on the current position, otherwise exits edit mode.
+Navigating passed the edges of the field moves the cursor. The expected format
+depends on the cursor mode when entering edit mode.
 
 
 Screenshot:
