@@ -1,7 +1,9 @@
 # hecate
 The Hex Editor From Hell!
 
-Usage:
+Download: **[Linux, Mac OS X, and Windows](releases)**
+
+Compile from source:
 
     go get -u github.com/evanmiller/hecate
     $GOPATH/bin/hecate file1 [file2 [...]]
