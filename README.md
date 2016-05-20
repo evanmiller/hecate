@@ -1,7 +1,7 @@
 # hecate
 The Hex Editor From Hell!
 
-Download: **[Linux, Mac OS X, and Windows](releases)**
+Download: **[Linux, Mac OS X, and Windows](https://github.com/evanmiller/hecate/releases)**
 
 Compile from source:
 
