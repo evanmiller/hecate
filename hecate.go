@@ -1,10 +1,10 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
-	"errors"
 
 	mmap "github.com/edsrzf/mmap-go"
 
@@ -18,6 +18,7 @@ type SwitchScreen interface {
 }
 
 type ScreenIndex int
+
 func (idx ScreenIndex) screenIndex() int {
 	return int(idx)
 }
@@ -28,15 +29,15 @@ type FileInfo struct {
 	rw       bool
 }
 
-func (file_info *FileInfo) baseName () string {
-	suffix := map[bool]string {
-		true: " *",
+func (file_info *FileInfo) baseName() string {
+	suffix := map[bool]string{
+		true:  " *",
 		false: "",
 	}
 	return path.Base(file_info.filename) + suffix[file_info.rw]
 }
 
-func (file_info *FileInfo) reopen (read_write bool) error {
+func (file_info *FileInfo) reopen(read_write bool) error {
 	new_file, err := openFile(file_info.filename, read_write)
 	if err == nil {
 		*file_info = *new_file
@@ -52,11 +53,11 @@ type ScreenInstance struct {
 	quit   chan bool
 }
 
-func NewScreenInstance (screen Screen, cmds chan<- interface{}) *ScreenInstance {
+func NewScreenInstance(screen Screen, cmds chan<- interface{}) *ScreenInstance {
 	instance := &ScreenInstance{
-		cmds: cmds,
+		cmds:   cmds,
 		screen: screen,
-		quit: make(chan bool, 10),
+		quit:   make(chan bool, 10),
 		events: make(chan termbox.Event, 10),
 	}
 	go func() {
@@ -134,7 +135,7 @@ func mainLoop(files []FileInfo, style Style) {
 	}
 }
 
-func openFile (filename string, read_write bool) (*FileInfo, error) {
+func openFile(filename string, read_write bool) (*FileInfo, error) {
 	file_mode := os.O_RDONLY
 	mmap_mode := mmap.RDONLY
 	if read_write {
@@ -161,7 +162,7 @@ func openFile (filename string, read_write bool) (*FileInfo, error) {
 		return nil, errors.New(fmt.Sprintf("Error mmap'ing file: %q\n", err.Error()))
 	}
 
-	return &FileInfo{ filename: filename, bytes: mm, rw: read_write }, nil
+	return &FileInfo{filename: filename, bytes: mm, rw: read_write}, nil
 }
 
 func main() {

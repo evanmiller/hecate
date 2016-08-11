@@ -20,8 +20,9 @@ type FieldEditor struct {
 	valid      bool
 }
 
-func (field_editor *FieldEditor) handleKeyEvent(event termbox.Event) bool {
-	is_done := false
+// return 0 during processing, 1 when done, -1 when aborted
+func (field_editor *FieldEditor) handleKeyEvent(event termbox.Event) (result int) {
+	result = 0
 
 	if len(field_editor.value) == 0 && event.Key != termbox.KeyEsc {
 		if event.Ch == 0 {
@@ -39,9 +40,13 @@ func (field_editor *FieldEditor) handleKeyEvent(event termbox.Event) bool {
 
 	if event.Key == termbox.KeyEnter {
 		// only accept valid input
-		is_done = field_editor.valid
+		if field_editor.valid {
+			result = 1
+		}
 	} else if event.Key == termbox.KeyEsc {
-		is_done = len(field_editor.value) == 0
+		if len(field_editor.value) == 0 {
+			result = -1
+		}
 		field_editor.setValue(nil)
 	} else if event.Key == termbox.KeyArrowLeft {
 		field_editor.moveCursor(-1)
@@ -64,17 +69,17 @@ func (field_editor *FieldEditor) handleKeyEvent(event termbox.Event) bool {
 	} else if event.Key == termbox.KeySpace {
 		field_editor.insert(' ')
 	}
-	return is_done
+	return result
 }
 
-func (field_editor *FieldEditor) getValue () string {
+func (field_editor *FieldEditor) getValue() string {
 	if len(field_editor.value) > 0 {
 		return string(field_editor.value)
 	}
 	return field_editor.last_value
 }
 
-func (field_editor *FieldEditor) setValue (value []rune) {
+func (field_editor *FieldEditor) setValue(value []rune) {
 	field_editor.value = value
 
 	field_editor.at_bol = false
@@ -85,7 +90,7 @@ func (field_editor *FieldEditor) setValue (value []rune) {
 	}
 }
 
-func (field_editor *FieldEditor) setCursorPos (pos int) {
+func (field_editor *FieldEditor) setCursorPos(pos int) {
 	bol := field_editor.at_bol
 	eol := field_editor.at_eol
 
@@ -109,7 +114,7 @@ func (field_editor *FieldEditor) setCursorPos (pos int) {
 	field_editor.at_eol = eol
 }
 
-func (field_editor *FieldEditor) moveCursor (delta int) {
+func (field_editor *FieldEditor) moveCursor(delta int) {
 	field_editor.setCursorPos(field_editor.cursor_pos + delta)
 }
 

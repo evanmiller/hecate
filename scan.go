@@ -130,7 +130,7 @@ func scanSearchString(value string, bytes []byte, cursor Cursor, quit <-chan boo
 	return &first_cursor
 }
 
-func scanEditedContent (value string, cursor Cursor) (string, string) {
+func scanEditedContent(value string, cursor Cursor) (string, string) {
 	if len(value) == 0 {
 		return "", ""
 	}
@@ -178,7 +178,7 @@ func scanEditedContent (value string, cursor Cursor) (string, string) {
 		}
 	} else if cursor.mode == BitPatternMode {
 		var scanned_int int64
-		scan_fmt := "%" + string('0' + (cursor.bit_length * 2)) + "x%s"
+		scan_fmt := "%" + string('0'+(cursor.bit_length*2)) + "x%s"
 		if n, _ := fmt.Sscanf(value, scan_fmt, &scanned_int, &rest_of_value); n < 1 {
 			return "", value
 		}

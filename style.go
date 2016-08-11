@@ -36,6 +36,6 @@ type Style struct {
 	about_logo_bg termbox.Attribute
 
 	filled_bit_rune rune
-	empty_bit_rune rune
-	space_rune rune
+	empty_bit_rune  rune
+	space_rune      rune
 }
