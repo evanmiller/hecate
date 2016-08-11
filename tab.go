@@ -262,9 +262,9 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event, output chan<- interface{
 func (tab *DataTab) handleFieldEditor(event termbox.Event) {
 	new_pos := -1
 	is_done := tab.field_editor.handleKeyEvent(event)
-	if is_done {
+	if is_done != 0 {
 		string_value := tab.field_editor.getValue()
-		if len(string_value) > 0 {
+		if len(string_value) > 0 && is_done > 0 {
 			if tab.edit_mode == EditingSearch {
 				tab.is_searching = true
 				tab.search_progress = 0.0
@@ -279,8 +279,6 @@ func (tab *DataTab) handleFieldEditor(event termbox.Event) {
 			} else if tab.edit_mode == EditingEpoch {
 				tab.cursor.epoch_time = scanEpoch(string_value, tab.cursor.epoch_time)
 			}
-		} else if tab.edit_mode == EditingContent {
-			tab.updateEditedContent(tab.field_editor.getValue())
 		}
 		tab.edit_mode = 0
 		tab.field_editor = nil

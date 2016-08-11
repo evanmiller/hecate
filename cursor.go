@@ -246,15 +246,15 @@ func (cursor *Cursor) interpretBytesAsTime(data []byte) time.Time {
 	return date_time.UTC()
 }
 
-func (cursor *Cursor) setPos (pos int) {
+func (cursor *Cursor) setPos(pos int) {
 	if pos < 0 {
 		pos = 0
-	} else if pos + cursor.length() > cursor.max_pos {
+	} else if pos+cursor.length() > cursor.max_pos {
 		pos = cursor.max_pos - cursor.length()
 	}
 	cursor.pos = pos
 }
 
-func (cursor *Cursor) move (delta int) {
-	cursor.setPos (cursor.pos + delta)
+func (cursor *Cursor) move(delta int) {
+	cursor.setPos(cursor.pos + delta)
 }
