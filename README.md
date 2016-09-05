@@ -8,13 +8,23 @@ Compile from source:
     go get -u github.com/evanmiller/hecate
     $GOPATH/bin/hecate file1 [file2 [...]]
 
-Hecate is a hex editor designed for reverse engineering file formats without
-leaving the comfort of your terminal window. Hecate (pronounced HECK-it)
-features tabbed browsing, in-place editing, large-file support, full-file
-searching, and Vim-like controls.  Place the cursor over some bytes and choose
-a mode (**t** for text, **p** for a bit pattern, **i** for an integer, **f**
-for a floating point) to see what those bytes represent. Toggle endianness with
-**e** and signedness with **u**. Press **enter** to edit.
+Hecate is a terminal hex editor unlike any you've ever seen: instead of putting
+the (ASCII) representation of bytes way out on the right side of the screen, it
+puts the interpreted values directly beneath the hex representation.
+
+Behold:
+![Hecate screenshot](http://www.evanmiller.org/images/hecate-screenshot2.png)
+
+If that weren't exciting enough, you can move the cursor around using Vim-like
+controls and interpret the underlying bytes as an integer, float, etc. --
+perfect for your reverse-engineering needs.
+
+But wait, there's more! Hecate (pronounced HECK-it) features tabbed browsing,
+in-place editing, large-file support, full-file searching, and arbitrary
+expressions for specifying an offset within a file. Place the cursor over some
+bytes and choose a mode (**t** for text, **p** for a bit pattern, **i** for an
+integer, **f** for a floating point) to see what those bytes represent.  Toggle
+endianness with **e** and signedness with **u**.  Press **enter** to edit.
 
 
 ### Editing
@@ -25,9 +35,6 @@ cancels any changes on the current position, otherwise exits edit mode.
 Navigating passed the edges of the field moves the cursor. The expected format
 depends on the cursor mode when entering edit mode.
 
-
-Screenshot:
-![Hecate screenshot](http://www.evanmiller.org/images/hecate-screenshot2.png)
 
 Full list of commands:
 
