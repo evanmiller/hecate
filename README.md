@@ -1,6 +1,4 @@
-# hecate
-
-The Hex Editor From Hell!
+# hecate: The Hex Editor From Hell!
 
 > HECATE. O well done! I commend your pains;  
 >    And every one shall share i' the gains;  
@@ -15,9 +13,12 @@ Download latest release: **[Linux, Mac OS X, and Windows](https://github.com/eva
 Compile from source:
 
     go get -u github.com/evanmiller/hecate
+
+Run:
+
     $GOPATH/bin/hecate file1 [file2 [...]]
 
-Hecate is a terminal hex editor unlike any you've ever seen: instead of putting
+Hecate is a **terminal hex editor** unlike any you've ever seen: instead of putting
 the (ASCII) representation of bytes way out on the right side of the screen, it
 puts the interpreted values directly *beneath* the hex representation.
 
@@ -64,7 +65,7 @@ Full list of commands:
 <tr><td>x</td><td>toggle hex</td><td>n</td><td>next match</td><td>?</td><td>help screen</td></tr>
 </table>
 
-What are you waiting for? Hecate gives you the tools to pick apart any file on your computer. But I'll give her the last word...
+What are you waiting for? Don't you want to edit any file on your computer? What could possibly go wrong?
 
 > Your vessels and your spells provide,  
 > Your charms and everything beside.  
