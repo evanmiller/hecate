@@ -1,5 +1,14 @@
 # hecate
+
 The Hex Editor From Hell!
+
+> HECATE. O well done! I commend your pains;  
+>    And every one shall share i' the gains;  
+>    And now about the cauldron sing,  
+>    Live elves and fairies in a ring,  
+>    Enchanting all that you put in.  
+> 
+> --*Macbeth*, p. 56
 
 Download latest release: **[Linux, Mac OS X, and Windows](https://github.com/evanmiller/hecate/releases)**
 
@@ -10,7 +19,7 @@ Compile from source:
 
 Hecate is a terminal hex editor unlike any you've ever seen: instead of putting
 the (ASCII) representation of bytes way out on the right side of the screen, it
-puts the interpreted values directly beneath the hex representation.
+puts the interpreted values directly *beneath* the hex representation.
 
 Behold:
 ![Hecate screenshot](http://www.evanmiller.org/images/hecate-screenshot2.png)
@@ -19,12 +28,13 @@ If that weren't exciting enough, you can move the cursor around using Vim-like
 controls and interpret the underlying bytes as an integer, float, etc. --
 perfect for your reverse-engineering needs.
 
-But wait, there's more! Hecate (pronounced HECK-it) features tabbed browsing,
-in-place editing, large-file support, full-file searching, and arbitrary
-expressions for specifying an offset within a file. Place the cursor over some
-bytes and choose a mode (**t** for text, **p** for a bit pattern, **i** for an
-integer, **f** for a floating point) to see what those bytes represent.  Toggle
-endianness with **e** and signedness with **u**.  Press **enter** to edit.
+But wait, there's more! Hecate (pronounced HECK-it, named after the Greek [goddess](https://en.wikipedia.org/wiki/Hecate)
+of witchcraft) features tabbed browsing, in-place editing, large-file support,
+full-file searching, and arbitrary expressions for specifying an offset within
+a file. Place the cursor over some bytes and choose a mode (**t** for text, **p**
+for a bit pattern, **i** for an integer, **f** for a floating point) to see what
+those bytes represent.  Toggle endianness with **e** and signedness with **u**.
+Press **enter** to edit.
 
 
 ### Editing
@@ -53,3 +63,12 @@ Full list of commands:
 <tr><td>:</td><td>jump to byte</td><td>/</td><td>search file</td><td>enter</td><td>edit mode</td></tr>
 <tr><td>x</td><td>toggle hex</td><td>n</td><td>next match</td><td>?</td><td>help screen</td></tr>
 </table>
+
+What are you waiting for? Hecate gives you the tools to pick apart any file on your computer. But I'll give her the last word...
+
+> Your vessels and your spells provide,  
+> Your charms and everything beside.  
+> I am for th' air. This night I'll spend  
+> Unto a dismal and a fatal end.
+
+Download latest release: **[Linux, Mac OS X, and Windows](https://github.com/evanmiller/hecate/releases)**
