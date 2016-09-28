@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/mattn/go-runewidth"
 	"github.com/nsf/termbox-go"
 )
 
@@ -154,7 +155,7 @@ func (screen *AboutScreen) drawScreen(style Style) {
 				}
 				termbox.SetCell(x_pos, y_pos, displayRune, default_fg, bg)
 			}
-			x_pos++
+			x_pos += runewidth.RuneWidth(displayRune)
 		}
 		y_pos++
 	}
