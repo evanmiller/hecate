@@ -23,7 +23,7 @@ the (ASCII) representation of bytes way out on the right side of the screen, it
 puts the interpreted values directly *beneath* the hex representation.
 
 Behold:
-![Hecate screenshot](http://www.evanmiller.org/images/hecate-screenshot2.png)
+![Hecate screenshot](http://www.evanmiller.org/images/hecate/screenshot2.png)
 
 If that weren't exciting enough, you can move the cursor around using Vim-like
 controls and interpret the underlying bytes as an integer, float, etc. --
