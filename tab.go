@@ -192,6 +192,10 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event, output chan<- interface{
 		if tab.show_date {
 			tab.cursor.epoch_unit = DaysSinceEpoch
 		}
+	} else if event.Ch == 'm' {
+		if tab.show_date {
+			tab.cursor.epoch_unit = MilliSecondsSinceEpoch
+		}
 	} else if event.Ch == 'j' || event.Key == termbox.KeyArrowDown { // down
 		tab.cursor.move(tab.view_port.bytes_per_row)
 	} else if event.Key == termbox.KeyCtrlF || event.Key == termbox.KeyPgdn { // page down
