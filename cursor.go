@@ -28,6 +28,7 @@ const (
 const (
 	SecondsSinceEpoch TimeSinceEpochUnit = iota + 1
 	DaysSinceEpoch
+	MilliSecondsSinceEpoch
 )
 
 type ByteRange struct {
@@ -225,7 +226,9 @@ func (cursor *Cursor) interpretBytesAsTime(data []byte) time.Time {
 	if cursor.mode == IntegerMode {
 		if cursor.epoch_unit == SecondsSinceEpoch {
 			date_time = cursor.epoch_time.Add(time.Duration(integer) * time.Second)
-		} else if cursor.epoch_unit == DaysSinceEpoch {
+		} else if cursor.epoch_unit == MilliSecondsSinceEpoch {
+			date_time = cursor.epoch_time.Add(time.Duration(integer) * time.Millisecond)
+		} else {
 			date_time = cursor.epoch_time.Add(time.Duration(integer) * 24 * time.Hour)
 		}
 	} else if cursor.mode == FloatingPointMode {
@@ -237,6 +240,8 @@ func (cursor *Cursor) interpretBytesAsTime(data []byte) time.Time {
 		}
 		if cursor.epoch_unit == SecondsSinceEpoch {
 			date_time = cursor.epoch_time.Add(time.Duration(float * float64(time.Second)))
+		} else if cursor.epoch_unit == MilliSecondsSinceEpoch {
+			date_time = cursor.epoch_time.Add(time.Duration(float * float64(time.Millisecond)))
 		} else {
 			date_time = cursor.epoch_time.Add(time.Duration(float * 24 * float64(time.Hour)))
 		}

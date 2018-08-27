@@ -150,7 +150,7 @@ func (widget CursorWidget) drawAtPoint(tab *DataTab, layout Layout, point Point,
 		}
 	}
 	max_x_pos = x_pos
-	x_pos = point.x
+	x_pos = point.x - 7
 	if layout.show_date {
 		y_pos++
 		if pressure < 6 {
@@ -173,6 +173,12 @@ func (widget CursorWidget) drawAtPoint(tab *DataTab, layout Layout, point Point,
 				x_pos += drawStringAtPoint("(s)ecs", x_pos, y_pos, date_fg, style.selected_option_bg)
 			} else {
 				x_pos += drawStringAtPoint("(s)ecs", x_pos, y_pos, date_fg, bg)
+			}
+			x_pos++
+			if date_fg == fg && cursor.epoch_unit == MilliSecondsSinceEpoch {
+				x_pos += drawStringAtPoint("(m)sec", x_pos, y_pos, date_fg, style.selected_option_bg)
+			} else {
+				x_pos += drawStringAtPoint("(m)sec", x_pos, y_pos, date_fg, bg)
 			}
 			x_pos++
 			if date_fg == fg && cursor.epoch_unit == DaysSinceEpoch {
