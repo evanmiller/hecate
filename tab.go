@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/nsf/termbox-go"
 	"strings"
 	"time"
+
+	"github.com/nsf/termbox-go"
 )
 
 var modes = map[rune]CursorMode{
@@ -221,12 +222,22 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event, output chan<- interface{
 	} else if event.Ch == '$' {
 		tab.cursor.setPos((tab.cursor.pos/tab.view_port.bytes_per_row+1)*tab.view_port.bytes_per_row - tab.cursor.length())
 	} else if modes[event.Ch] != 0 {
-		if tab.cursor.mode == modes[event.Ch] {
-			tab.cursor.mode = tab.prev_mode
-			tab.prev_mode = modes[event.Ch]
-		} else {
-			tab.prev_mode = tab.cursor.mode
-			tab.cursor.mode = modes[event.Ch]
+		len := 1
+		if modes[event.Ch] == BitPatternMode {
+			len = tab.cursor.bit_length
+		} else if modes[event.Ch] == IntegerMode {
+			len = tab.cursor.int_length
+		} else if modes[event.Ch] == FloatingPointMode {
+			len = tab.cursor.fp_length
+		}
+		if len+tab.cursor.pos <= tab.cursor.max_pos {
+			if tab.cursor.mode == modes[event.Ch] {
+				tab.cursor.mode = tab.prev_mode
+				tab.prev_mode = modes[event.Ch]
+			} else {
+				tab.prev_mode = tab.cursor.mode
+				tab.cursor.mode = modes[event.Ch]
+			}
 		}
 	} else if event.Ch == 'u' || event.Ch == 'U' {
 		if tab.cursor.mode == IntegerMode {
@@ -239,7 +250,19 @@ func (tab *DataTab) handleKeyEvent(event termbox.Event, output chan<- interface{
 	} else if event.Ch == 'H' {
 		tab.cursor.shrink()
 	} else if event.Ch == 'L' {
-		tab.cursor.grow()
+		len := 0
+		if tab.cursor.mode == IntegerMode {
+			len = tab.cursor.int_length * 2
+		} else if tab.cursor.mode == FloatingPointMode {
+			len = tab.cursor.fp_length * 2
+		} else if tab.cursor.mode == BitPatternMode {
+			len = tab.cursor.bit_length * 2
+		}
+
+		if len+tab.cursor.pos <= tab.cursor.max_pos {
+			tab.cursor.grow()
+		}
+
 	} else if event.Key == termbox.KeyCtrlE { // scroll down
 		if (tab.view_port.first_row+1)*tab.view_port.bytes_per_row < len(tab.bytes) {
 			tab.view_port.first_row++
