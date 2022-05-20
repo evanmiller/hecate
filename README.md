@@ -10,13 +10,14 @@
 
 Download latest release: **[Linux, Mac OS X, and Windows](https://github.com/evanmiller/hecate/releases)**
 
-Compile from source:
+Compile and install latest tagged version from source:
 
-    go get -u github.com/evanmiller/hecate
+    go install github.com/evanmiller/hecate@latest
 
 Run:
 
-    $GOPATH/bin/hecate file1 [file2 [...]]
+    export PATH="$(go env GOPATH)/bin:${PATH}"
+    hecate file1 [file2 [...]]
 
 Hecate is a **terminal hex editor** unlike any you've ever seen: instead of putting
 the (ASCII) representation of bytes way out on the right side of the screen, it
